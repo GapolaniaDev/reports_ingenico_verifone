@@ -1,133 +1,132 @@
 # 🧾 Invoice Management System
 
-**Sistema completo de gestión de facturas para Verifone e Ingenico**
+**Complete invoice management system for Verifone and Ingenico**
 
 ---
 
-## 📋 Tabla de Contenidos
+## 📋 Table of Contents
 
-1. [Descripción](#descripción)
-2. [Inicio Rápido](#inicio-rápido)
-3. [Características](#características)
-4. [Estructura del Proyecto](#estructura-del-proyecto)
-5. [Configuración](#configuración)
-6. [Uso](#uso)
+1. [Description](#description)
+2. [Quick Start](#quick-start)
+3. [Features](#features)
+4. [Project Structure](#project-structure)
+5. [Configuration](#configuration)
+6. [Usage](#usage)
 7. [API Endpoints](#api-endpoints)
-8. [Credenciales](#credenciales)
+8. [Credentials](#credentials)
 9. [Troubleshooting](#troubleshooting)
 
 ---
 
-## 🎯 Descripción
+## 🎯 Description
 
-Sistema web Flask para automatizar la generación y gestión de facturas de trabajo de Verifone e Ingenico.
+Flask web system to automate the generation and management of Verifone and Ingenico work order invoices.
 
-### Tecnologías:
+### Technologies:
 - **Backend:** Flask (Python 3.9+)
 - **Frontend:** HTML5, CSS3, JavaScript (Vanilla)
 - **APIs:** Salesforce Aura, Ingenico Portal
-- **Extensiones:** Chrome Extension (Aura cURL Interceptor)
+- **Extensions:** Chrome Extension (Aura cURL Interceptor)
 
 ---
 
-## ⚡ Inicio Rápido
+## ⚡ Quick Start
 
-### 1. Requisitos
+### 1. Requirements
 ```bash
 Python 3.9+
 pip
 ```
 
-### 2. Instalación
+### 2. Installation
 ```bash
-# Clonar repositorio
+# Clone repository
 cd "Invoice OCT 2025"
 
-# Instalar dependencias
+# Install dependencies
 pip3 install -r requirements.txt
 
-# Configurar variables de entorno
+# Configure environment variables
 cp .env.example .env
-# Editar .env con tus credenciales
+# Edit .env with your credentials
 ```
 
-### 3. Ejecutar
+### 3. Run
 ```bash
-# Opción A: Script automático
+# Option A: Automatic script
 ./scripts/start_server.sh
 
-# Opción B: Manual
+# Option B: Manual
 python3 app/app.py
 ```
 
-### 4. Acceder
-Abrir en navegador: **http://localhost:8080**
+### 4. Access
+Open in browser: **http://localhost:8080**
 
 ---
 
-## ✨ Características
+## ✨ Features
 
 ### 🔐 Verifone
-- ✅ Gestión de credenciales Aura API
-- ✅ Generación automática de invoices
-- ✅ Filtrado por rango de fechas
-- ✅ Cálculo automático de charges por área/tipo
-- ✅ Detección de trabajos "On Site"
-- ✅ Exportación a Excel
+- ✅ Aura API credential management
+- ✅ Automatic invoice generation
+- ✅ Date range filtering
+- ✅ Automatic charge calculation by area/type
+- ✅ "On Site" work order detection
+- ✅ Excel export
 
 ### 📦 Ingenico
-- ✅ Importación de "Closed Job List" HTML
-- ✅ Búsqueda y descarga de trabajos cerrados
-- ✅ Parsing automático de datos
-- ✅ Cálculo de totales por área
+- ✅ "Closed Job List" HTML import
+- ✅ Closed job search and download
+- ✅ Automatic data parsing
+- ✅ Area totals calculation
 
-### 🎨 Interfaz
-- ✅ Dashboard moderno y responsive
-- ✅ Indicador de estado en tiempo real
-- ✅ Sistema de notificaciones modal
-- ✅ Tabla interactiva con sorting
-- ✅ Exportación a Excel
-- ✅ Viewer unificado Ingenico + Verifone
+### 🎨 Interface
+- ✅ Modern and responsive dashboard
+- ✅ Real-time status indicator
+- ✅ Modal notification system
+- ✅ Interactive table with sorting
+- ✅ Excel export
+- ✅ Unified Ingenico + Verifone viewer
 
 ---
 
-## 📂 Estructura del Proyecto
+## 📂 Project Structure
 
 ```
 Invoice OCT 2025/
 ├── app/                        # Core application
-│   ├── app.py                  # Flask app principal
-│   ├── generate_invoice.py     # Lógica de generación Verifone
-│   └── config.py               # Configuraciones
+│   ├── app.py                  # Main Flask app
+│   ├── generate_invoice.py     # Verifone generation logic
+│   └── config.py               # Configurations
 │
-├── scripts/                    # Scripts auxiliares
+├── scripts/                    # Auxiliary scripts
 │   ├── fetch_ingenico_closed_jobs.py
 │   ├── update_credentials.py
 │   └── debug_curl.py
 │
-├── templates/                  # Templates HTML (Jinja2)
-│   ├── base.html               # Template base
-│   ├── credentials.html        # Gestión de credenciales
-│   ├── viewer.html             # Viewer principal
+├── templates/                  # HTML templates (Jinja2)
+│   ├── base.html               # Base template
+│   ├── credentials.html        # Credential management
+│   ├── viewer.html             # Main viewer
 │   └── index.html              # Dashboard
 │
-├── static/                     # Archivos estáticos
-├── extensions/                 # Chrome extensions
-│   └── aura-curl-interceptor/
+├── static/                     # Static files
+├── aura-curl-interceptor/      # Chrome extension
 │
-├── tests/                      # Tests y ejemplos
-├── data/                       # Datos generados
+├── tests/                      # Tests and examples
+├── data/                       # Generated data
 │   ├── VerifoneWorkOrders/
 │   └── logs/
 │
-└── docs/                       # Documentación
+└── docs/                       # Documentation
 ```
 
 ---
 
-## ⚙️ Configuración
+## ⚙️ Configuration
 
-### Variables de Entorno (.env)
+### Environment Variables (.env)
 
 #### Verifone Aura API
 ```bash
@@ -135,64 +134,64 @@ API_URL_HEADER=https://verifone.lightning.force.com/aura
 ORIGIN_URL=https://verifone.lightning.force.com
 REFERER_HEADER=https://verifone.lightning.force.com/
 
-# Cookies (obtener desde Chrome DevTools)
+# Cookies (get from Chrome DevTools)
 AURA_COOKIE="sid=...; ..."
 ```
 
 #### Ingenico API
 ```bash
 INGENICO_BASE_URL=https://portal.ingenico.com.au
-INGENICO_USERNAME=tu_usuario
-INGENICO_PASSWORD=tu_password
+INGENICO_USERNAME=your_username
+INGENICO_PASSWORD=your_password
 ```
 
-### Cómo Obtener Credenciales
+### How to Get Credentials
 
 #### Verifone (Aura Cookie)
-1. Abrir Chrome DevTools (F12)
-2. Ir a Network tab
-3. Navegar en Verifone Portal
-4. Copiar Request Headers → Cookie
-5. Pegar en `.env` → `AURA_COOKIE`
+1. Open Chrome DevTools (F12)
+2. Go to Network tab
+3. Navigate in Verifone Portal
+4. Copy Request Headers → Cookie
+5. Paste in `.env` → `AURA_COOKIE`
 
-**O usar la extensión Chrome:**
-1. Instalar `aura-curl-interceptor`
-2. Abrir popup
-3. Copiar cookie automáticamente
+**Or use Chrome extension:**
+1. Install `aura-curl-interceptor`
+2. Open popup
+3. Copy cookie automatically
 
-Más detalles: [docs/CREDENTIALS.md](docs/CREDENTIALS.md)
+More details: [docs/CREDENTIALS.md](docs/CREDENTIALS.md)
 
 ---
 
-## 🚀 Uso
+## 🚀 Usage
 
-### Generar Invoice Verifone
+### Generate Verifone Invoice
 
-1. Ir a **http://localhost:8080/viewer**
-2. Click en **"Generate Invoice"**
-3. Seleccionar rango de fechas
-4. Configurar límite de registros
-5. Generar
+1. Go to **http://localhost:8080/viewer**
+2. Click **"Generate Invoice"**
+3. Select date range
+4. Configure record limit
+5. Generate
 
-El sistema:
-- Obtiene work orders de Salesforce Aura API
-- Filtra por fecha (inclusivo)
-- Calcula charges automáticamente
-- Genera HTML con tabla completa
-- Guarda en `VerifoneWorkOrders/invoice_YYYYMMDD_HHMMSS/`
+The system:
+- Fetches work orders from Salesforce Aura API
+- Filters by date (inclusive)
+- Automatically calculates charges
+- Generates HTML with complete table
+- Saves in `VerifoneWorkOrders/invoice_YYYYMMDD_HHMMSS/`
 
-### Cargar Archivo Ingenico
+### Load Ingenico File
 
-1. Ir a **http://localhost:8080/viewer**
-2. En sección "Ingenico - Closed Job List"
-3. Upload archivo HTML exportado de Ingenico
-4. Ver resultados en tabla unificada
+1. Go to **http://localhost:8080/viewer**
+2. In "Ingenico - Closed Job List" section
+3. Upload HTML file exported from Ingenico
+4. View results in unified table
 
-### Exportar a Excel
+### Export to Excel
 
-1. Cargar datos (Verifone y/o Ingenico)
-2. Click en **"Export to Excel"**
-3. Archivo `.xlsx` se descarga con 3 sheets:
+1. Load data (Verifone and/or Ingenico)
+2. Click **"Export to Excel"**
+3. `.xlsx` file downloads with 3 sheets:
    - All Jobs
    - Ingenico
    - Verifone
@@ -202,16 +201,16 @@ El sistema:
 ## 🔌 API Endpoints
 
 ### `GET /`
-Redirect a `/credentials`
+Redirect to `/credentials`
 
 ### `GET /credentials`
-Página de gestión de credenciales
+Credential management page
 
 ### `GET /viewer`
-Viewer principal de reportes
+Main reports viewer
 
 ### `POST /api/generate-invoice`
-Genera invoice de Verifone
+Generates Verifone invoice
 
 **Body:**
 ```json
@@ -232,7 +231,7 @@ Genera invoice de Verifone
 ```
 
 ### `GET /api/generation-status`
-Obtiene estado actual de generación
+Gets current generation status
 
 **Response:**
 ```json
@@ -240,24 +239,24 @@ Obtiene estado actual de generación
   "running": true,
   "progress": 33,
   "total": 201,
-  "message": "Procesando...",
+  "message": "Processing...",
   "errors": []
 }
 ```
 
 ### `POST /api/save-credentials`
-Guarda credenciales de Verifone
+Saves Verifone credentials
 
 ### `POST /api/test-connection`
-Prueba conexión con Aura API
+Tests connection with Aura API
 
 ---
 
-## 🔐 Credenciales
+## 🔐 Credentials
 
-### Estructura de Credenciales Verifone
+### Verifone Credentials Structure
 
-El sistema requiere cookies de sesión de Salesforce Aura:
+The system requires Salesforce Aura session cookies:
 
 ```
 sid=...
@@ -266,130 +265,130 @@ CookieConsentPolicy=...
 LSKey-c$CookieConsentPolicy=...
 ```
 
-### Expiración
-Las cookies expiran después de ~2 horas de inactividad. Si obtienes error de autenticación, actualiza las credenciales.
+### Expiration
+Cookies expire after ~2 hours of inactivity. If you get authentication error, update credentials.
 
-### Seguridad
-- ❌ **NUNCA** commitear `.env` a git
-- ✅ `.env` está en `.gitignore`
-- ✅ Usar `.env.example` como template
+### Security
+- ❌ **NEVER** commit `.env` to git
+- ✅ `.env` is in `.gitignore`
+- ✅ Use `.env.example` as template
 
 ---
 
 ## 🛠️ Troubleshooting
 
 ### Error: "Server connection failed"
-**Causa:** Flask server no está corriendo
-**Solución:** Ejecutar `./scripts/start_server.sh`
+**Cause:** Flask server is not running
+**Solution:** Run `./scripts/start_server.sh`
 
 ### Error: "Authentication failed"
-**Causa:** Cookies Aura expiradas
-**Solución:** Actualizar cookies en `/credentials`
+**Cause:** Aura cookies expired
+**Solution:** Update cookies in `/credentials`
 
-### Error: "No se encontró la tabla esperada"
-**Causa:** Archivo HTML de Ingenico incorrecto
-**Solución:** Exportar archivo correcto desde Ingenico Portal
+### Error: "Expected table not found"
+**Cause:** Incorrect Ingenico HTML file
+**Solution:** Export correct file from Ingenico Portal
 
-### Trabajos "On Site" no aparecen
-**Causa:** Status field no detectado
-**Solución:** Verificar que el campo Status = "On Site" en Salesforce
+### "On Site" jobs not appearing
+**Cause:** Status field not detected
+**Solution:** Verify that Status field = "On Site" in Salesforce
 
-### Cálculos incorrectos
-**Causa:** Área mal calculada o job type no reconocido
-**Solución:** Revisar `calculateCharge()` en `generate_invoice.py`
+### Incorrect calculations
+**Cause:** Area miscalculated or unrecognized job type
+**Solution:** Review `calculateCharge()` in `generate_invoice.py`
 
 ---
 
-## 📊 Cálculo de Charges
+## 📊 Charge Calculation
 
-### Áreas (por Postcode)
+### Areas (by Postcode)
 - **Area 1:** Adelaide metro (default)
-- **Area 2:** Postcodes específicos (5110, 5116, 5111, etc.)
-- **Area 3:** Regiones remotas
+- **Area 2:** Specific postcodes (5110, 5116, 5111, etc.)
+- **Area 3:** Remote regions
 
-### Tarifas Base (Area 1)
+### Base Rates (Area 1)
 - Installation/Swap: **$28.00**
 - After Hours: **$80.00**
 - Weekend: **$40.00**
 - After Hours + Weekend: **$90.00**
-- Recovery: **$10.00** (fijo)
-- De-installation: **$10.00** (fijo)
-- Multiple jobs: **$10.00** (segundo terminal)
+- Recovery: **$10.00** (fixed)
+- De-installation: **$10.00** (fixed)
+- Multiple jobs: **$10.00** (second terminal)
 
-**Nota:** Areas 2 y 3 tienen tarifas incrementadas. Ver código para detalles.
-
----
-
-## 🎨 Sistema de Notificaciones
-
-El sistema incluye notificaciones modales profesionales:
-
-- ✅ **Success:** Verde - Operaciones exitosas
-- ⚠️ **Warning:** Amarillo - Validaciones fallidas
-- ❌ **Error:** Rojo - Errores críticos
-- ℹ️ **Info:** Azul - Información general
-
-Auto-cierre: 5s (success/info), 8s (warning/error)
+**Note:** Areas 2 and 3 have increased rates. See code for details.
 
 ---
 
-## 🔄 Estado del Sistema
+## 🎨 Notification System
 
-Indicador en esquina superior derecha:
+The system includes professional modal notifications:
 
-- ✓ **Ready:** Sistema listo (verde, pulse suave)
-- ⚙️ **Generating:** Procesando (naranja, spinner)
-- ✓ **Completed:** Finalizado (verde brillante)
-- ⚠️ **Error:** Error (rojo, clickeable para detalles)
+- ✅ **Success:** Green - Successful operations
+- ⚠️ **Warning:** Yellow - Failed validations
+- ❌ **Error:** Red - Critical errors
+- ℹ️ **Info:** Blue - General information
+
+Auto-close: 5s (success/info), 8s (warning/error)
 
 ---
 
-## 📦 Dependencias
+## 🔄 System Status
 
-Ver `requirements.txt`:
+Indicator in top right corner:
+
+- ✓ **Ready:** System ready (green, soft pulse)
+- ⚙️ **Generating:** Processing (orange, spinner)
+- ✓ **Completed:** Finished (bright green)
+- ⚠️ **Error:** Error (red, clickable for details)
+
+---
+
+## 📦 Dependencies
+
+See `requirements.txt`:
 - Flask
 - requests
 - python-dotenv
 
 ---
 
-## 👨‍💻 Desarrollo
+## 👨‍💻 Development
 
-### Agregar nuevo endpoint
-1. Editar `app/app.py`
-2. Agregar `@app.route('/nueva-ruta')`
-3. Reiniciar servidor
+### Add new endpoint
+1. Edit `app/app.py`
+2. Add `@app.route('/new-route')`
+3. Restart server
 
-### Modificar cálculos
-1. Editar `app/generate_invoice.py`
-2. Función `calculateCharge()`
-3. Probar con work orders de ejemplo
+### Modify calculations
+1. Edit `app/generate_invoice.py`
+2. Function `calculateCharge()`
+3. Test with example work orders
 
-### Cambiar estilos
-1. Editar `templates/base.html` (estilos globales)
-2. O `templates/viewer.html` (estilos específicos)
+### Change styles
+1. Edit `templates/base.html` (global styles)
+2. Or `templates/viewer.html` (specific styles)
 
 ---
 
 ## 📝 Changelog
 
-Ver archivo `docs/CHANGELOG.md` para historial completo de cambios.
+See `docs/CHANGELOG.md` file for complete change history.
 
 ---
 
-## 📄 Licencia
+## 📄 License
 
-Proyecto privado - Todos los derechos reservados
-
----
-
-## 🆘 Soporte
-
-Para problemas o preguntas:
-1. Revisar [Troubleshooting](#troubleshooting)
-2. Revisar logs en `data/logs/flask_server.log`
-3. Contactar al desarrollador
+Private project - All rights reserved
 
 ---
 
-**Última actualización:** Noviembre 2025
+## 🆘 Support
+
+For issues or questions:
+1. Review [Troubleshooting](#troubleshooting)
+2. Review logs in `data/logs/flask_server.log`
+3. Contact developer
+
+---
+
+**Last updated:** November 2025
