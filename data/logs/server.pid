@@ -1,0 +1,1 @@
+ sleep 3 echo Server PID: $(cat server.pid) echo  echo Testing server... curl -s http://localhost:5001/

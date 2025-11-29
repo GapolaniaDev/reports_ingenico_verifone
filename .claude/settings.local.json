@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(/usr/bin/python3:*)",
+      "Bash(python3:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(pip3 install:*)",
+      "Bash(open:*)",
+      "Bash(git rm:*)",
+      "Bash(git add:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(git config:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git reset:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

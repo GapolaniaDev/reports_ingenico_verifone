@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura cURL Interceptor</title>
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/icon16.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="icons/icon48.png">
+  <link rel="icon" type="image/png" sizes="128x128" href="icons/icon128.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Compact Header -->
+    <header class="popup-header">
+      <h1>⚡ Aura cURL Interceptor</h1>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <button class="tab active" data-tab="live">
+        <span class="tab-icon">📡</span>
+        <span class="tab-label">Live</span>
+      </button>
+      <button class="tab" data-tab="config">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">Config</span>
+      </button>
+      <button class="tab" data-tab="help">
+        <span class="tab-icon">📖</span>
+        <span class="tab-label">Help</span>
+      </button>
+    </div>
+
+    <!-- Tab Content Container -->
+    <div class="tab-content-container">
+
+      <!-- TAB 1: LIVE -->
+      <div class="tab-content active" id="tab-live">
+        <!-- Status Bar -->
+        <div class="status-bar">
+          <div class="status-chip" id="status-cookies">
+            <span class="status-icon">🔴</span>
+            <span class="status-text">Cookies</span>
+          </div>
+          <div class="status-chip" id="status-server">
+            <span class="status-icon">🔴</span>
+            <span class="status-text">Server</span>
+          </div>
+          <div class="status-chip" id="status-interceptor">
+            <span class="status-icon">❌</span>
+            <span class="status-text">Interceptor</span>
+          </div>
+          <div class="status-chip" id="status-autosync">
+            <span class="status-icon">⛔</span>
+            <span class="status-text">Auto-sync</span>
+          </div>
+        </div>
+
+        <!-- Interceptor Checklist -->
+        <div class="compact-section">
+          <h3 class="section-title">✅ Interceptor Checklist</h3>
+          <div class="checklist">
+            <div class="checklist-item" id="check-header">
+              <span class="checkbox">❌</span>
+              <span class="checklist-label">🎯 HEADER</span>
+              <span class="sync-status" id="sync-header">⏳</span>
+            </div>
+            <div class="checklist-item" id="check-work-orders">
+              <span class="checkbox">❌</span>
+              <span class="checklist-label">📋 Work Orders List</span>
+              <span class="sync-status" id="sync-work-orders">⏳</span>
+            </div>
+            <div class="checklist-item" id="check-pii-details">
+              <span class="checkbox">❌</span>
+              <span class="checklist-label">🔶 PII Details</span>
+              <span class="sync-status" id="sync-pii-details">⏳</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Intercepted Requests Panel -->
+        <div class="compact-section">
+          <div class="section-header-inline">
+            <h3 class="section-title">📡 Intercepted Requests</h3>
+            <span class="badge" id="request-count">0</span>
+          </div>
+
+          <div id="requests-list" class="requests-panel">
+            <div class="empty-state">
+              <p>⏳ Waiting for requests...</p>
+              <small>Navigate to Salesforce and perform actions</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: CONFIG -->
+      <div class="tab-content" id="tab-config">
+        <div class="config-container">
+
+          <!-- Accordion 1: Cookie Configuration -->
+          <div class="accordion active">
+            <div class="accordion-header">
+              <div class="accordion-title">
+                <span class="accordion-icon">🍪</span>
+                <span>Cookie Configuration</span>
+              </div>
+              <div class="accordion-right">
+                <span class="accordion-status" id="acc-cookie-status">Not configured</span>
+                <span class="accordion-arrow">▼</span>
+              </div>
+            </div>
+            <div class="accordion-content">
+              <textarea
+                id="cookie-input"
+                placeholder="Paste the complete Cookie header from Network tab&#10;Example: renderCtx=...; CookieConsentPolicy=0:1; sid=..."
+                rows="4"
+              ></textarea>
+              <div class="button-group">
+                <button id="save-cookie" class="btn btn-primary">💾 Save Cookies</button>
+                <button id="inject-interceptor" class="btn btn-secondary">⚡ Activate Interceptor</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion 2: Python Server Configuration -->
+          <div class="accordion">
+            <div class="accordion-header">
+              <div class="accordion-title">
+                <span class="accordion-icon">🔗</span>
+                <span>Python Server</span>
+              </div>
+              <div class="accordion-right">
+                <span class="accordion-status" id="acc-server-status">Not configured</span>
+                <span class="accordion-arrow">▶</span>
+              </div>
+            </div>
+            <div class="accordion-content">
+              <input
+                type="text"
+                id="server-url"
+                placeholder="http://localhost:8080"
+                class="input-text"
+              />
+              <button id="save-server-config" class="btn btn-primary">💾 Save Server Config</button>
+            </div>
+          </div>
+
+          <!-- Accordion 3: Auto-update Settings -->
+          <div class="accordion">
+            <div class="accordion-header">
+              <div class="accordion-title">
+                <span class="accordion-icon">🤖</span>
+                <span>Auto-update Settings</span>
+              </div>
+              <div class="accordion-right">
+                <span class="accordion-status" id="acc-autosync-status">Disabled</span>
+                <span class="accordion-arrow">▶</span>
+              </div>
+            </div>
+            <div class="accordion-content">
+              <label class="checkbox-label">
+                <input type="checkbox" id="auto-update-enabled">
+                <span>Auto-update credentials to Python server</span>
+              </label>
+              <p class="help-text">When enabled, credentials are automatically sent to Python server when captured</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TAB 3: HELP -->
+      <div class="tab-content" id="tab-help">
+        <div class="help-container">
+          <h3 class="help-title">🚀 Quick Start Guide</h3>
+          <ol class="instructions-list">
+            <li>Open <strong>Network tab</strong> in DevTools (F12)</li>
+            <li>Copy the complete <code>Cookie</code> header from any request</li>
+            <li>Go to <strong>Config tab</strong> and paste it in Cookie Configuration</li>
+            <li>Configure <strong>Python Server URL</strong> (e.g., <code>http://localhost:8080</code>)</li>
+            <li>Enable <strong>Auto-update</strong> to automatically sync credentials</li>
+            <li>Click <strong>"Activate Interceptor"</strong> and reload page (F5)</li>
+            <li>Perform actions in Salesforce - requests will appear in Live tab</li>
+          </ol>
+
+          <h3 class="help-title" style="margin-top: 24px;">ℹ️ Important Notes</h3>
+          <ul class="info-list">
+            <li><strong>🎯 HEADER:</strong> Keeps only 1 (most recent) → Auto-syncs to Python</li>
+            <li><strong>📋 Work Orders List:</strong> Keeps only 1 (most recent) → Auto-syncs</li>
+            <li><strong>🔶 PII Details:</strong> Keeps only 1 (most recent) → Auto-syncs</li>
+            <li><strong>✅ Works in ALL frames</strong> (including iframes)</li>
+            <li><strong>🔄 Manual sync:</strong> Use "Sync All" button at bottom</li>
+          </ul>
+
+          <h3 class="help-title" style="margin-top: 24px;">📊 Sync Status Icons</h3>
+          <ul class="info-list">
+            <li>⏳ <strong>Syncing...</strong> - Request is being sent to Python</li>
+            <li>✅ <strong>Synced</strong> - Successfully saved to .env file</li>
+            <li>❌ <strong>Error</strong> - Sync failed, check server connection</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Fixed Footer with Action Buttons -->
+    <div class="fixed-footer">
+      <button id="sync-all-btn" class="btn btn-sync">🔄 Sync All to Python</button>
+      <button id="clear-all-btn" class="btn btn-danger">🗑️ Clear All</button>
+      <button id="open-viewer-btn" class="btn btn-primary">📊 Open Viewer</button>
+      <span class="version">v2.0.0</span>
+    </div>
+
+  </div>
+
+  <!-- Modal for cURL Display -->
+  <div id="curl-modal" class="modal">
+    <div class="modal-overlay" onclick="closeCurlModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>✅ cURL Command (Decoded)</h2>
+        <button class="modal-close" onclick="closeCurlModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="curl-output">
+          <pre id="curl-content"></pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="copy-curl-modal" class="btn btn-success">📄 Copy cURL</button>
+        <button class="btn btn-secondary" onclick="closeCurlModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

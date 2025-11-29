@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Generador de Iconos - Aura Interceptor</title>
+  <style>
+    body {
+      font-family: system-ui;
+      padding: 40px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 20px;
+    }
+    .icons {
+      display: flex;
+      gap: 30px;
+      margin: 30px 0;
+    }
+    .icon-wrapper {
+      text-align: center;
+    }
+    canvas {
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      display: block;
+      margin-bottom: 10px;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    .instructions {
+      background: #f9fafb;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 30px;
+    }
+    .instructions h2 {
+      margin-top: 0;
+      color: #1f2937;
+    }
+    .instructions ol {
+      margin-left: 20px;
+    }
+    .instructions li {
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚡ Generador de Iconos</h1>
+    <p>Haz clic en "Descargar" para guardar cada icono en la carpeta <code>icons/</code></p>
+
+    <div class="icons">
+      <div class="icon-wrapper">
+        <canvas id="icon16" width="16" height="16"></canvas>
+        <button onclick="downloadIcon('icon16', 'icon16.png')">Descargar 16x16</button>
+      </div>
+
+      <div class="icon-wrapper">
+        <canvas id="icon48" width="48" height="48"></canvas>
+        <button onclick="downloadIcon('icon48', 'icon48.png')">Descargar 48x48</button>
+      </div>
+
+      <div class="icon-wrapper">
+        <canvas id="icon128" width="128" height="128"></canvas>
+        <button onclick="downloadIcon('icon128', 'icon128.png')">Descargar 128x128</button>
+      </div>
+    </div>
+
+    <div class="instructions">
+      <h2>📝 Instrucciones</h2>
+      <ol>
+        <li>Haz clic en cada botón "Descargar" para guardar los iconos</li>
+        <li>Guarda cada archivo en la carpeta <code>aura-curl-interceptor/icons/</code></li>
+        <li>Los nombres deben ser exactamente: <code>icon16.png</code>, <code>icon48.png</code>, <code>icon128.png</code></li>
+        <li>¡Listo! Ya puedes instalar la extensión en Chrome</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    // Función para dibujar el icono con gradiente púrpura y rayo
+    function drawIcon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+
+      // Fondo con gradiente
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+      ctx.fillStyle = gradient;
+
+      // Borde redondeado
+      const radius = size * 0.2;
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(size - radius, 0);
+      ctx.quadraticCurveTo(size, 0, size, radius);
+      ctx.lineTo(size, size - radius);
+      ctx.quadraticCurveTo(size, size, size - radius, size);
+      ctx.lineTo(radius, size);
+      ctx.quadraticCurveTo(0, size, 0, size - radius);
+      ctx.lineTo(0, radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // Dibujar rayo (⚡)
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#ffffff';
+
+      const scale = size / 128; // Escalar según el tamaño
+      const offsetX = size * 0.3;
+      const offsetY = size * 0.2;
+
+      ctx.beginPath();
+      ctx.moveTo(offsetX + 35 * scale, offsetY + 15 * scale);
+      ctx.lineTo(offsetX + 25 * scale, offsetY + 50 * scale);
+      ctx.lineTo(offsetX + 35 * scale, offsetY + 50 * scale);
+      ctx.lineTo(offsetX + 25 * scale, offsetY + 85 * scale);
+      ctx.lineTo(offsetX + 45 * scale, offsetY + 55 * scale);
+      ctx.lineTo(offsetX + 35 * scale, offsetY + 55 * scale);
+      ctx.lineTo(offsetX + 45 * scale, offsetY + 15 * scale);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Dibujar los tres iconos
+    drawIcon('icon16', 16);
+    drawIcon('icon48', 48);
+    drawIcon('icon128', 128);
+
+    // Función para descargar el icono
+    function downloadIcon(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+  </script>
+</body>
+</html>

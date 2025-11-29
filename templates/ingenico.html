@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}Ingenico Closed Jobs - Invoice Management{% endblock %}
+
+{% block content %}
+<h2>🔧 Ingenico eCAMS - Closed Jobs</h2>
+
+<div id="alerts"></div>
+
+<!-- Tabs -->
+<div style="display: flex; gap: 10px; margin: 20px 0; border-bottom: 2px solid #e0e0e0; padding-bottom: 0;">
+    <button class="tab-btn active" onclick="switchTab('search')">🔍 Search Jobs</button>
+    <button class="tab-btn" onclick="switchTab('credentials')">🔐 Update Credentials</button>
+    <button class="tab-btn" onclick="switchTab('downloads')">📥 Downloads History</button>
+</div>
+
+<!-- Tab 1: Search Jobs -->
+<div id="searchTab" class="tab-content">
+    <div style="background: #f8f9fa; padding: 25px; border-radius: 12px; margin-top: 20px;">
+        <h3 style="margin-bottom: 20px;">Search Closed Jobs</h3>
+
+        <form id="searchForm" onsubmit="searchClosedJobs(event)">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div class="form-group">
+                    <label for="assignedTo">Técnico Asignado:</label>
+                    <input type="text" id="assignedTo" name="assigned_to" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="jobType">Tipo de Trabajo:</label>
+                    <select id="jobType" name="job_type" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;">
+                        <option value="ALL">ALL</option>
+                        <option value="INSTALL">INSTALL</option>
+                        <option value="DEINSTALL">DEINSTALL</option>
+                        <option value="SWAP">SWAP</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="fromDate">Fecha Desde:</label>
+                    <input type="text" id="fromDate" name="from_date" placeholder="DD/MM/YY" required>
+                    <small style="color: #666;">Formato: 01/10/25</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="toDate">Fecha Hasta:</label>
+                    <input type="text" id="toDate" name="to_date" placeholder="DD/MM/YY" required>
+                    <small style="color: #666;">Formato: 31/10/25</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="pageSize">Page Size:</label>
+                    <select id="pageSize" name="page_size" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;">
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="btn" id="searchBtn" style="margin-top: 20px; width: 100%;">
+                🔍 Buscar Closed Jobs
+            </button>
+        </form>
+
+        <!-- Results Section -->
+        <div id="resultsSection" style="display: none; margin-top: 30px; padding: 20px; background: white; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <h4 style="color: #2e7d32; margin-bottom: 15px;">✓ Búsqueda Exitosa</h4>
+            <div id="resultsSummary" style="font-size: 16px; line-height: 1.6;">
+                <!-- Summary will be populated here -->
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn" onclick="openFile('json')" style="background: #4caf50;">📄 Open JSON</button>
+                <button class="btn" onclick="openFile('html')" style="background: #2196f3;">🌐 Open HTML</button>
+                <button class="btn" onclick="openFolder()" style="background: #ff9800;">📁 Open Folder</button>
+            </div>
+        </div>
+
+        <!-- Error Section -->
+        <div id="errorSection" style="display: none; margin-top: 30px; padding: 20px; background: #ffebee; border-radius: 8px; border: 1px solid #ef5350;">
+            <h4 style="color: #c62828; margin-bottom: 15px;">✗ Error</h4>
+            <p id="errorMessage" style="color: #c62828; font-size: 14px;"></p>
+        </div>
+    </div>
+</div>
+
+<!-- Tab 2: Update Credentials -->
+<div id="credentialsTab" class="tab-content" style="display: none;">
+    <div style="background: #f8f9fa; padding: 25px; border-radius: 12px; margin-top: 20px;">
+        <h3 style="margin-bottom: 20px;">Update Ingenico Credentials</h3>
+
+        <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #ffc107;">
+            <h4 style="color: #856404; margin-bottom: 10px;">📋 Instructions:</h4>
+            <ol style="color: #856404; line-height: 1.8; margin-left: 20px;">
+                <li>Open Ingenico eCAMS in your browser</li>
+                <li>Navigate to: <code>FSPClosedJobSearch.aspx</code></li>
+                <li>Open DevTools (F12) → Network tab</li>
+                <li>Fill the search form and click <strong>GO</strong></li>
+                <li>Find the POST request to <code>FSPClosedJobSearch.aspx</code></li>
+                <li>Right-click → Copy → <strong>Copy as cURL</strong></li>
+                <li>Paste the cURL command below</li>
+            </ol>
+        </div>
+
+        <form id="credentialsForm" onsubmit="updateCredentials(event)">
+            <div class="form-group">
+                <label for="curlCommand">cURL Command:</label>
+                <textarea id="curlCommand" name="curl_command" rows="10" placeholder="curl 'https://services.ingenico.com.au/...' ..." required></textarea>
+            </div>
+
+            <button type="submit" class="btn" id="updateBtn" style="width: 100%;">
+                🔄 Update Credentials
+            </button>
+        </form>
+
+        <div id="updateSuccess" style="display: none; margin-top: 20px; padding: 20px; background: #d4edda; border-radius: 8px; border: 1px solid #c3e6cb;">
+            <h4 style="color: #155724; margin-bottom: 10px;">✓ Success!</h4>
+            <p style="color: #155724;">Credentials updated successfully. The search form has been updated with the new filters.</p>
+        </div>
+
+        <div id="updateError" style="display: none; margin-top: 20px; padding: 20px; background: #f8d7da; border-radius: 8px; border: 1px solid #f5c6cb;">
+            <h4 style="color: #721c24; margin-bottom: 10px;">✗ Error</h4>
+            <p id="updateErrorMessage" style="color: #721c24;"></p>
+        </div>
+    </div>
+</div>
+
+<!-- Tab 3: Downloads History -->
+<div id="downloadsTab" class="tab-content" style="display: none;">
+    <div style="background: #f8f9fa; padding: 25px; border-radius: 12px; margin-top: 20px;">
+        <h3 style="margin-bottom: 20px;">Downloads History</h3>
+
+        <div id="downloadsList">
+            <p style="text-align: center; color: #666;">Loading...</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .tab-btn {
+        padding: 12px 24px;
+        background: transparent;
+        color: #667eea;
+        border: none;
+        border-bottom: 3px solid transparent;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .tab-btn:hover {
+        background: #f8f9fa;
+        border-bottom-color: #667eea;
+    }
+
+    .tab-btn.active {
+        color: #764ba2;
+        border-bottom-color: #764ba2;
+        background: #f8f9fa;
+    }
+
+    .tab-content {
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    select, input[type="text"] {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    code {
+        background: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+        font-size: 13px;
+    }
+
+    .download-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        margin-bottom: 15px;
+        transition: all 0.3s;
+    }
+
+    .download-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+</style>
+
+<script>
+    let currentResult = null;
+
+    // Load filters on page load
+    window.addEventListener('load', function() {
+        loadFilters();
+        loadDownloads();
+    });
+
+    function switchTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.style.display = 'none';
+        });
+
+        // Remove active class from all buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Show selected tab
+        if (tabName === 'search') {
+            document.getElementById('searchTab').style.display = 'block';
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        } else if (tabName === 'credentials') {
+            document.getElementById('credentialsTab').style.display = 'block';
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        } else if (tabName === 'downloads') {
+            document.getElementById('downloadsTab').style.display = 'block';
+            document.querySelectorAll('.tab-btn')[2].classList.add('active');
+            loadDownloads();
+        }
+    }
+
+    function loadFilters() {
+        fetch('/api/ingenico/get-filters')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('assignedTo').value = data.filters.assigned_to;
+                    document.getElementById('jobType').value = data.filters.job_type;
+                    document.getElementById('fromDate').value = data.filters.from_date;
+                    document.getElementById('toDate').value = data.filters.to_date;
+                    document.getElementById('pageSize').value = data.filters.page_size;
+                }
+            })
+            .catch(error => console.error('Error loading filters:', error));
+    }
+
+    function searchClosedJobs(event) {
+        event.preventDefault();
+
+        const btn = document.getElementById('searchBtn');
+        const resultsSection = document.getElementById('resultsSection');
+        const errorSection = document.getElementById('errorSection');
+
+        // Hide previous results
+        resultsSection.style.display = 'none';
+        errorSection.style.display = 'none';
+
+        // Disable button
+        btn.disabled = true;
+        btn.textContent = '⏳ Searching...';
+
+        const formData = new FormData(event.target);
+        const filters = {
+            assigned_to: formData.get('assigned_to'),
+            job_type: formData.get('job_type'),
+            from_date: formData.get('from_date'),
+            to_date: formData.get('to_date'),
+            page_size: formData.get('page_size')
+        };
+
+        fetch('/api/ingenico/search-closed-jobs', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(filters)
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.textContent = '🔍 Buscar Closed Jobs';
+
+            if (data.success) {
+                currentResult = data;
+                document.getElementById('resultsSummary').innerHTML = `
+                    <p><strong>Total de trabajos:</strong> ${data.total_jobs}</p>
+                    <p><strong>Carpeta:</strong> <code>${data.folder}</code></p>
+                    <p><strong>Archivos generados:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>JSON: <code>${data.json_file.split('/').pop()}</code></li>
+                        <li>HTML: <code>${data.html_file.split('/').pop()}</code></li>
+                    </ul>
+                `;
+                resultsSection.style.display = 'block';
+                showAlert('✓ Búsqueda completada exitosamente', 'success');
+            } else {
+                document.getElementById('errorMessage').textContent = data.message || data.error || 'Unknown error';
+                errorSection.style.display = 'block';
+                showAlert('✗ Error en la búsqueda', 'error');
+
+                // Check if session expired
+                if (data.error === 'SESSION_EXPIRED') {
+                    document.getElementById('errorMessage').innerHTML = `
+                        ${data.message}<br><br>
+                        <a href="#" onclick="switchTab('credentials'); return false;" style="color: #c62828; font-weight: bold;">
+                            → Go to Credentials tab to update
+                        </a>
+                    `;
+                }
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.textContent = '🔍 Buscar Closed Jobs';
+            document.getElementById('errorMessage').textContent = `Network error: ${error.message}`;
+            errorSection.style.display = 'block';
+            showAlert('✗ Network error', 'error');
+        });
+    }
+
+    function updateCredentials(event) {
+        event.preventDefault();
+
+        const btn = document.getElementById('updateBtn');
+        const successDiv = document.getElementById('updateSuccess');
+        const errorDiv = document.getElementById('updateError');
+
+        successDiv.style.display = 'none';
+        errorDiv.style.display = 'none';
+
+        btn.disabled = true;
+        btn.textContent = '⏳ Updating...';
+
+        const formData = new FormData(event.target);
+
+        fetch('/api/ingenico/update-credentials', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                curl_command: formData.get('curl_command')
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.textContent = '🔄 Update Credentials';
+
+            if (data.success) {
+                successDiv.style.display = 'block';
+                showAlert('✓ Credentials updated successfully', 'success');
+                // Reload filters
+                loadFilters();
+                // Clear textarea
+                document.getElementById('curlCommand').value = '';
+            } else {
+                document.getElementById('updateErrorMessage').textContent = data.error || 'Unknown error';
+                errorDiv.style.display = 'block';
+                showAlert('✗ Failed to update credentials', 'error');
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.textContent = '🔄 Update Credentials';
+            document.getElementById('updateErrorMessage').textContent = `Network error: ${error.message}`;
+            errorDiv.style.display = 'block';
+            showAlert('✗ Network error', 'error');
+        });
+    }
+
+    function loadDownloads() {
+        const listDiv = document.getElementById('downloadsList');
+        listDiv.innerHTML = '<p style="text-align: center; color: #666;">Loading...</p>';
+
+        fetch('/api/ingenico/list-downloads')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.downloads.length > 0) {
+                    listDiv.innerHTML = data.downloads.map(download => `
+                        <div class="download-card">
+                            <h4 style="margin-bottom: 10px; color: #333;">${download.date_range}</h4>
+                            <p style="color: #666; font-size: 14px; margin-bottom: 5px;">
+                                <strong>Timestamp:</strong> ${download.timestamp}
+                            </p>
+                            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                                <strong>Total Jobs:</strong> ${download.total_jobs}
+                            </p>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn" onclick="window.open('file://${download.json_file}', '_blank')" style="background: #4caf50; font-size: 14px; padding: 8px 16px;">📄 JSON</button>
+                                <button class="btn" onclick="window.open('file://${download.html_file}', '_blank')" style="background: #2196f3; font-size: 14px; padding: 8px 16px;">🌐 HTML</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listDiv.innerHTML = '<p style="text-align: center; color: #666;">No downloads found. Start a search to create your first download.</p>';
+                }
+            })
+            .catch(error => {
+                listDiv.innerHTML = '<p style="text-align: center; color: #c62828;">Error loading downloads</p>';
+                console.error('Error:', error);
+            });
+    }
+
+    function openFile(type) {
+        if (!currentResult) return;
+        const file = type === 'json' ? currentResult.json_file : currentResult.html_file;
+        window.open(`file://${file}`, '_blank');
+    }
+
+    function openFolder() {
+        if (!currentResult) return;
+        window.open(`file://${currentResult.folder}`, '_blank');
+    }
+
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.textContent = message;
+
+        const alerts = document.getElementById('alerts');
+        alerts.appendChild(alertDiv);
+
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+</script>
+{% endblock %}

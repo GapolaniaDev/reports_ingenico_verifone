@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Verifone Invoice Management{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icon16.png') }}">
+    <link rel="icon" type="image/png" sizes="48x48" href="{{ url_for('static', filename='icon48.png') }}">
+    <link rel="icon" type="image/png" sizes="128x128" href="{{ url_for('static', filename='icon128.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icon48.png') }}">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            margin: 0 auto;
+            background: white;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Bar Compacta - Fusión de header + nav */
+        .top-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+
+        .top-bar-title {
+            font-size: 18px;
+            font-weight: 700;
+            white-space: nowrap;
+            margin-right: 20px;
+        }
+
+        .top-bar-nav {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .top-bar-nav a {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .top-bar-nav a:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .top-bar-nav a.active {
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Status Pill - Rediseño Profesional */
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Estados del pill con gradientes suaves y bordes */
+        .status-pill[data-status="idle"] {
+            background: linear-gradient(135deg, #E8F9EE 0%, #DFF6E0 100%);
+            color: #1B5E20;
+            border: 1.5px solid rgba(76, 175, 80, 0.25);
+        }
+
+        .status-pill[data-status="generating"] {
+            background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%);
+            color: #E65100;
+            border: 1.5px solid rgba(255, 152, 0, 0.3);
+        }
+
+        .status-pill[data-status="completed"] {
+            background: linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%);
+            color: #1B5E20;
+            border: 1.5px solid rgba(76, 175, 80, 0.4);
+        }
+
+        .status-pill[data-status="error"] {
+            background: linear-gradient(135deg, #FFCDD2 0%, #EF9A9A 100%);
+            color: #B71C1C;
+            border: 1.5px solid rgba(244, 67, 54, 0.4);
+            cursor: pointer;
+        }
+
+        .status-pill:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Icono del status con mejor tamaño */
+        .status-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            line-height: 1;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+        }
+
+        /* Animación pulse para estado idle */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        .status-pill[data-status="idle"] .status-icon {
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+
+        /* Animación de rotación para el spinner */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .status-icon.spinning {
+            animation: spin 2s linear infinite;
+        }
+
+        /* Contenedor del contenido */
+        .status-content {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            flex: 1;
+        }
+
+        .status-text {
+            line-height: 1;
+        }
+
+        /* Barra de progreso */
+        .status-progress-bar {
+            width: 100%;
+            height: 3px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-progress-bar.visible {
+            opacity: 1;
+        }
+
+        .status-progress-fill {
+            height: 100%;
+            background: currentColor;
+            border-radius: 2px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        /* Tooltip */
+        .status-tooltip {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: rgba(33, 33, 33, 0.95);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 11px;
+            line-height: 1.5;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-pill:hover .status-tooltip {
+            opacity: 1;
+        }
+
+        .status-tooltip::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            right: 12px;
+            width: 8px;
+            height: 8px;
+            background: rgba(33, 33, 33, 0.95);
+            transform: rotate(45deg);
+        }
+
+        .content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Modal de errores */
+        .error-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .error-modal.show {
+            display: flex;
+        }
+
+        .error-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .error-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #ffcdd2;
+        }
+
+        .error-modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #c62828;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .error-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .error-modal-close:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .error-modal-body {
+            color: #333;
+        }
+
+        .error-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .error-list-item {
+            padding: 12px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #856404;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+    </style>
+    {% block extra_style %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <!-- Top Bar Compacta -->
+        <div class="top-bar">
+            <div class="top-bar-title">🧾 Invoice Management</div>
+            <div class="top-bar-nav">
+                <a href="/credentials" class="{% if request.path == '/credentials' or request.path == '/' %}active{% endif %}">🔐 Verifone Credentials</a>
+                <a href="/viewer" class="{% if request.path == '/viewer' %}active{% endif %}">📊 Generate Reports</a>
+            </div>
+            <div class="status-pill" id="statusPill" data-status="idle" onclick="handleStatusClick()">
+                <div class="status-icon" id="statusIcon">✓</div>
+                <div class="status-content">
+                    <span class="status-text" id="statusText">Ready</span>
+                    <div class="status-progress-bar" id="statusProgressBar">
+                        <div class="status-progress-fill" id="statusProgressFill"></div>
+                    </div>
+                </div>
+                <div class="status-tooltip" id="statusTooltip">
+                    System ready • All services operational
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Modal de errores -->
+    <div class="error-modal" id="errorModal" onclick="closeErrorModal(event)">
+        <div class="error-modal-content" onclick="event.stopPropagation()">
+            <div class="error-modal-header">
+                <div class="error-modal-title">
+                    ⚠️ Generation Errors
+                </div>
+                <button class="error-modal-close" onclick="closeErrorModal()">&times;</button>
+            </div>
+            <div class="error-modal-body">
+                <p id="errorModalMessage" style="margin-bottom: 16px; color: #666;">The following errors occurred during invoice generation:</p>
+                <ul class="error-list" id="errorList">
+                    <!-- Errors will be populated here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Utility function to show alerts
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+
+            const content = document.querySelector('.content');
+            content.insertBefore(alertDiv, content.firstChild);
+
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+
+        // Global variables for status management
+        let lastGenerationData = null;
+        let completedTimeout = null;
+        let generationStartTime = null;
+
+        // Check server status on page load
+        window.addEventListener('load', function() {
+            checkServerStatus();
+            // Check every 5 seconds
+            setInterval(checkServerStatus, 5000);
+        });
+
+        function checkServerStatus() {
+            const statusPill = document.getElementById('statusPill');
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            const statusProgressBar = document.getElementById('statusProgressBar');
+            const statusProgressFill = document.getElementById('statusProgressFill');
+            const statusTooltip = document.getElementById('statusTooltip');
+
+            if (!statusPill || !statusText) return;
+
+            fetch('/api/generation-status')
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Server offline');
+                    }
+                })
+                .then(data => {
+                    lastGenerationData = data;
+
+                    if (data.running) {
+                        // Estado: GENERATING
+                        updateStatus('generating', data);
+                    } else {
+                        // Check if we just completed (transitioned from running to not running)
+                        if (generationStartTime !== null) {
+                            // Just completed
+                            updateStatus('completed', data);
+                            generationStartTime = null;
+
+                            // Auto-transition to idle after 5 seconds
+                            if (completedTimeout) clearTimeout(completedTimeout);
+                            completedTimeout = setTimeout(() => {
+                                updateStatus('idle', data);
+                            }, 5000);
+                        } else {
+                            // Already idle
+                            if (!statusPill.dataset.status || statusPill.dataset.status === 'error') {
+                                updateStatus('idle', data);
+                            }
+                            // If currently 'completed', don't override (let timeout handle it)
+                        }
+                    }
+                })
+                .catch(() => {
+                    updateStatus('error', { errors: ['Server connection failed'] });
+                });
+        }
+
+        function updateStatus(status, data) {
+            const statusPill = document.getElementById('statusPill');
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            const statusProgressBar = document.getElementById('statusProgressBar');
+            const statusProgressFill = document.getElementById('statusProgressFill');
+            const statusTooltip = document.getElementById('statusTooltip');
+
+            // Update data-status attribute
+            statusPill.dataset.status = status;
+
+            switch(status) {
+                case 'idle':
+                    statusIcon.innerHTML = '✓';
+                    statusIcon.classList.remove('spinning');
+                    statusText.textContent = 'Ready';
+                    statusProgressBar.classList.remove('visible');
+                    statusProgressFill.style.width = '0%';
+                    statusTooltip.textContent = 'System ready • All services operational';
+                    break;
+
+                case 'generating':
+                    if (generationStartTime === null) {
+                        generationStartTime = new Date();
+                    }
+                    statusIcon.innerHTML = '⚙️';
+                    statusIcon.classList.add('spinning');
+
+                    const progress = data.progress || 0;
+                    const total = data.total || 0;
+                    const percentage = total > 0 ? Math.round((progress / total) * 100) : 0;
+
+                    statusText.textContent = total > 0 ? `Generating ${progress}/${total}` : 'Generating...';
+                    statusProgressBar.classList.add('visible');
+                    statusProgressFill.style.width = `${percentage}%`;
+
+                    const elapsed = Math.floor((new Date() - generationStartTime) / 1000);
+                    const tooltipLines = [
+                        'Processing Verifone work orders...',
+                        `Processed: ${progress} of ${total} (${percentage}%)`,
+                        `Started: ${generationStartTime.toLocaleTimeString()}`
+                    ];
+                    statusTooltip.innerHTML = tooltipLines.join('<br>');
+                    break;
+
+                case 'completed':
+                    statusIcon.innerHTML = '✓';
+                    statusIcon.classList.remove('spinning');
+
+                    const completedTotal = data.total || 0;
+                    statusText.textContent = `Completed ${completedTotal}/${completedTotal}`;
+                    statusProgressBar.classList.add('visible');
+                    statusProgressFill.style.width = '100%';
+
+                    statusTooltip.textContent = `✓ Successfully generated ${completedTotal} work orders`;
+                    break;
+
+                case 'error':
+                    statusIcon.innerHTML = '⚠️';
+                    statusIcon.classList.remove('spinning');
+                    statusText.textContent = 'Error - Click for details';
+                    statusProgressBar.classList.remove('visible');
+                    statusProgressFill.style.width = '0%';
+
+                    const errorCount = (data.errors && data.errors.length) || 0;
+                    statusTooltip.textContent = errorCount > 0
+                        ? `${errorCount} error(s) occurred. Click to view details.`
+                        : 'An error occurred. Click for details.';
+                    break;
+            }
+        }
+
+        function handleStatusClick() {
+            const statusPill = document.getElementById('statusPill');
+            const currentStatus = statusPill.dataset.status;
+
+            // Only open modal on error state
+            if (currentStatus === 'error' && lastGenerationData && lastGenerationData.errors) {
+                openErrorModal(lastGenerationData.errors);
+            }
+        }
+
+        function openErrorModal(errors) {
+            const modal = document.getElementById('errorModal');
+            const errorList = document.getElementById('errorList');
+
+            // Clear previous errors
+            errorList.innerHTML = '';
+
+            // Populate error list
+            if (errors && errors.length > 0) {
+                errors.forEach(error => {
+                    const li = document.createElement('li');
+                    li.className = 'error-list-item';
+                    li.textContent = error;
+                    errorList.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.className = 'error-list-item';
+                li.textContent = 'Unknown error occurred';
+                errorList.appendChild(li);
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeErrorModal(event) {
+            const modal = document.getElementById('errorModal');
+
+            // Close if clicking outside the content or on close button
+            if (!event || event.target === modal || event.target.classList.contains('error-modal-close')) {
+                modal.classList.remove('show');
+            }
+        }
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

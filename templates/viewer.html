@@ -1,0 +1,2437 @@
+{% extends "base.html" %}
+
+{% block title %}Generar Reportes - Invoice Management{% endblock %}
+
+{% block extra_style %}
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        .upload-section {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e5e7eb;
+            flex-shrink: 0;
+        }
+
+        .file-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .file-input-group {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+
+        .file-input-group:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #667eea;
+            font-size: 13px;
+        }
+
+        .file-input-group input[type="file"] {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .file-status {
+            margin-top: 6px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .verifone-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .generate-verifone-btn {
+            flex: 1;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .generate-verifone-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+        }
+
+        .verifone-file-input {
+            flex: 1;
+        }
+
+        .filters {
+            padding: 10px 20px;
+            background: white;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            flex-shrink: 0;
+        }
+
+        .filters input,
+        .filters select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .filters input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filters select {
+            min-width: 130px;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(40, 167, 69, 0.2);
+            white-space: nowrap;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .export-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Stats flotantes - Footer fijo */
+        .stats {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px 20px;
+            background: linear-gradient(to top, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+            backdrop-filter: blur(8px);
+            border-top: 2px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+            z-index: 100;
+            justify-content: center;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .stat-card .label {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 2px;
+            font-weight: 600;
+        }
+
+        .stat-card .value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-card-money {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 3px solid #28a745;
+        }
+
+        .stat-card-global {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+            border-left: 3px solid #ffc107;
+        }
+
+        .money-value {
+            color: #28a745;
+            font-family: 'Courier New', monospace;
+        }
+
+        .stat-card-global .money-value {
+            color: #f57c00;
+            font-size: 16px;
+        }
+
+        /* Contenedor de tabla con scroll interno */
+        .table-container {
+            flex: 1;
+            padding: 0 20px 80px 20px; /* 80px bottom padding para stats flotantes */
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        .table-wrapper {
+            max-height: calc(100vh - 220px);
+            overflow-y: auto;
+            overflow-x: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        th:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.3;
+            font-size: 0.9em;
+        }
+
+        th.sort-asc::after {
+            content: ' ▲';
+            opacity: 1;
+            color: #fff;
+        }
+
+        th.sort-desc::after {
+            content: ' ▼';
+            opacity: 1;
+            color: #fff;
+        }
+
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+
+        tbody tr {
+            transition: all 0.15s;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .company-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .company-ingenico {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .company-verifone {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-complete {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-failed {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status-onsite {
+            background: #ffe5b4 !important;
+            border-left: 4px solid #ff9800;
+        }
+
+        .status-onsite:hover {
+            background: #ffd699 !important;
+        }
+
+        .status-cancelled {
+            background: #f5f5f5;
+            color: #616161;
+        }
+
+        .status-scheduled {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .status-futile {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
+        /* JobType color badges */
+        .jobtype-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .jobtype-recovery, .jobtype-deinstall {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .jobtype-install {
+            background: #27ae60;
+            color: white;
+        }
+
+        .jobtype-swap {
+            background: #f39c12;
+            color: white;
+        }
+
+        .jobtype-other {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .tabs-container {
+            display: flex;
+            gap: 0;
+            background: #f8f9fa;
+            padding: 0 20px;
+            border-top: 1px solid #e5e7eb;
+            flex-shrink: 0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: #f8f9fa;
+            border: none;
+            border-top: 3px solid transparent;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-top-color: #667eea;
+        }
+
+        .tab.tab-ingenico.active {
+            color: #1976d2;
+            border-top-color: #1976d2;
+        }
+
+        .tab.tab-verifone.active {
+            color: #7b1fa2;
+            border-top-color: #7b1fa2;
+        }
+
+        .tab-count {
+            display: inline-block;
+            background: #e0e0e0;
+            color: #666;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 6px;
+        }
+
+        .tab.active .tab-count {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab.tab-ingenico.active .tab-count {
+            background: #1976d2;
+        }
+
+        .tab.tab-verifone.active .tab-count {
+            background: #7b1fa2;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .modal-section {
+            margin-bottom: 25px;
+        }
+
+        .modal-section-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .modal-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-field-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .modal-field-value {
+            font-size: 1em;
+            color: #333;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .modal-field-value.empty {
+            color: #999;
+            font-style: italic;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        tbody tr {
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 0;
+            }
+
+            .table-container {
+                padding: 15px;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+
+            .tabs-container {
+                padding: 0 15px;
+            }
+
+            .tab {
+                padding: 12px 20px;
+                font-size: 0.9em;
+            }
+        }
+
+
+        /* Modal Styles */
+        .invoice-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+
+        .invoice-modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .invoice-modal-header {
+            padding: 20px 30px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 12px 12px 0 0;
+            color: white;
+        }
+
+        .invoice-modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .invoice-modal-body {
+            padding: 30px;
+            color: white;
+        }
+
+        .invoice-form-group {
+            margin-bottom: 20px;
+        }
+
+        .invoice-form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .invoice-form-group input,
+        .invoice-form-group select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .invoice-form-group input:focus,
+        .invoice-form-group select:focus {
+            outline: 3px solid rgba(255,255,255,0.3);
+        }
+
+        .invoice-date-range-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .invoice-modal-footer {
+            padding: 20px 30px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 0 0 12px 12px;
+        }
+
+        .invoice-modal-footer button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .invoice-btn-cancel {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .invoice-btn-cancel:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .invoice-btn-generate {
+            background: white;
+            color: #667eea;
+        }
+
+        .invoice-btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .invoice-modal-close {
+            color: white;
+            float: right;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 20px;
+        }
+
+        .invoice-modal-close:hover {
+            opacity: 0.8;
+        }
+
+        .invoice-helper-text {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        /* Notification Modal */
+        .notification-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10001;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .notification-modal.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .notification-content {
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+            overflow: hidden;
+        }
+
+        .notification-header {
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .notification-header.success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+        }
+
+        .notification-header.error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+        }
+
+        .notification-header.warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            color: #856404;
+        }
+
+        .notification-header.info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            color: #0c5460;
+        }
+
+        .notification-icon {
+            font-size: 32px;
+            line-height: 1;
+        }
+
+        .notification-title {
+            flex: 1;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .notification-close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: inherit;
+            opacity: 0.6;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .notification-close-btn:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .notification-body {
+            padding: 24px;
+            color: #333;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .notification-footer {
+            padding: 16px 24px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .notification-btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .notification-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .notification-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+        <div class="upload-section">
+            <div class="file-inputs">
+                <!-- Ingenico Card -->
+                <div class="file-input-group">
+                    <label>📁 Ingenico - Closed Job List</label>
+                    <input type="file" id="ingenicoFile" accept=".html">
+                    <div class="file-status" id="ingenicoStatus">No file loaded</div>
+                </div>
+
+                <!-- Verifone Card -->
+                <div class="file-input-group">
+                    <label>📁 Verifone - Work Orders</label>
+                    <div class="verifone-actions">
+                        <button onclick="openGenerateModal()" class="generate-verifone-btn" title="Generate Invoice from Verifone API">
+                            📊 Generate Invoice
+                        </button>
+                        <div class="verifone-file-input">
+                            <input type="file" id="verifoneFile" accept=".html">
+                        </div>
+                    </div>
+                    <div class="file-status" id="verifoneStatus">No file loaded</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <input type="text" id="searchInput" placeholder="🔍 Search by Job ID, Client, Terminal...">
+            <select id="companyFilter">
+                <option value="all">All Companies</option>
+                <option value="ingenico">Ingenico</option>
+                <option value="verifone">Verifone</option>
+            </select>
+            <select id="statusFilter">
+                <option value="all">All Statuses</option>
+                <option value="complete">Completed</option>
+                <option value="failed">Failed</option>
+                <option value="onsite">On Site</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="futile">Futile</option>
+            </select>
+            <button class="export-btn" onclick="exportToExcel()">📊 Export to Excel</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="label">Total Jobs</div>
+                <div class="value" id="totalJobs">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Ingenico</div>
+                <div class="value" id="ingenicoCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Verifone</div>
+                <div class="value" id="verifoneCount">0</div>
+            </div>
+            <div class="stat-card stat-card-money">
+                <div class="label">💰 Ingenico Total (AUD)</div>
+                <div class="value money-value" id="ingenicoTotal">$0.00</div>
+            </div>
+            <div class="stat-card stat-card-money">
+                <div class="label">💰 Verifone Total (AUD)</div>
+                <div class="value money-value" id="verifoneTotal">$0.00</div>
+            </div>
+            <div class="stat-card stat-card-money stat-card-global">
+                <div class="label">💵 Global Total (AUD)</div>
+                <div class="value money-value" id="globalTotal">$0.00</div>
+            </div>
+        </div>
+
+        <!-- Tabla con scroll interno -->
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table id="jobsTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="index">#</th>
+                            <th class="sortable" data-sort="company">Company</th>
+                            <th class="sortable" data-sort="jobId">Job ID</th>
+                            <th class="sortable" data-sort="fsp">FSP</th>
+                            <th class="sortable" data-sort="jobType">Job Type</th>
+                            <th class="sortable" data-sort="terminalId">Terminal ID</th>
+                            <th class="sortable" data-sort="merchantName">Merchant Name</th>
+                            <th class="sortable" data-sort="suburb">Suburb</th>
+                            <th class="sortable" data-sort="postcode">Postcode</th>
+                            <th class="sortable" data-sort="area">Area</th>
+                            <th class="sortable" data-sort="onSiteDateTime">OnSite DateTime</th>
+                            <th class="sortable" data-sort="deviceType">Device Type</th>
+                            <th class="sortable" data-sort="billable">Billable</th>
+                            <th class="sortable" data-sort="afterHour">After Hour</th>
+                            <th class="sortable" data-sort="weekend">Weekend</th>
+                            <th class="sortable" data-sort="charge">Charge</th>
+                            <th class="sortable" data-sort="status">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobsTableBody">
+                        <tr>
+                            <td colspan="17">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">📂</div>
+                                    <h3>No data loaded</h3>
+                                    <p>Please load the Ingenico and/or Verifone HTML files above.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tabs-container">
+            <button class="tab tab-ingenico" data-company="ingenico">
+                Ingenico
+                <span class="tab-count" id="ingenicoTabCount">0</span>
+            </button>
+            <button class="tab tab-verifone" data-company="verifone">
+                Verifone
+                <span class="tab-count" id="verifoneTabCount">0</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Job Details Modal -->
+    <div class="modal-overlay" id="jobModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Job Details</h2>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be dynamically filled with JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Modal -->
+    <div class="notification-modal" id="notificationModal" onclick="closeNotification(event)">
+        <div class="notification-content" onclick="event.stopPropagation()">
+            <div class="notification-header" id="notificationHeader">
+                <div class="notification-icon" id="notificationIcon"></div>
+                <div class="notification-title" id="notificationTitle"></div>
+                <button class="notification-close-btn" onclick="closeNotification()">&times;</button>
+            </div>
+            <div class="notification-body" id="notificationBody"></div>
+            <div class="notification-footer">
+                <button class="notification-btn notification-btn-primary" onclick="closeNotification()">OK</button>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+    <script>
+        // VERSION: 2.0.3 - Updated: 2025-11-29 - Added notification modal system
+        let allJobs = [];
+        let currentTab = null; // null means "all companies"
+        let currentSortColumn = null;
+        let currentSortDirection = 'asc'; // 'asc' or 'desc'
+
+        // Notification Modal System
+        let notificationTimeout = null;
+
+        function showNotification(message, type = 'info', title = null, autoClose = true) {
+            const modal = document.getElementById('notificationModal');
+            const header = document.getElementById('notificationHeader');
+            const icon = document.getElementById('notificationIcon');
+            const titleElement = document.getElementById('notificationTitle');
+            const body = document.getElementById('notificationBody');
+
+            // Clear previous timeout
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+                notificationTimeout = null;
+            }
+
+            // Set icon and title based on type
+            const configs = {
+                success: { icon: '✅', title: title || 'Success', class: 'success' },
+                error: { icon: '❌', title: title || 'Error', class: 'error' },
+                warning: { icon: '⚠️', title: title || 'Warning', class: 'warning' },
+                info: { icon: 'ℹ️', title: title || 'Information', class: 'info' }
+            };
+
+            const config = configs[type] || configs.info;
+
+            // Update content
+            icon.textContent = config.icon;
+            titleElement.textContent = config.title;
+            body.textContent = message;
+
+            // Update header class
+            header.className = `notification-header ${config.class}`;
+
+            // Show modal
+            modal.classList.add('show');
+
+            // Auto-close after 5 seconds for success/info, 8 seconds for warning/error
+            if (autoClose) {
+                const delay = (type === 'success' || type === 'info') ? 5000 : 8000;
+                notificationTimeout = setTimeout(() => {
+                    closeNotification();
+                }, delay);
+            }
+        }
+
+        function closeNotification(event) {
+            const modal = document.getElementById('notificationModal');
+
+            // Close if clicking outside the content or on close button
+            if (!event || event.target === modal || event.target.classList.contains('notification-close-btn') || event.target.classList.contains('notification-btn')) {
+                modal.classList.remove('show');
+                if (notificationTimeout) {
+                    clearTimeout(notificationTimeout);
+                    notificationTimeout = null;
+                }
+            }
+        }
+
+        // Helper function to parse date with time in format "DD/MM/YYYY HH:MM AM/PM"
+        function parseDateWithTime(dateStr) {
+            if (!dateStr || dateStr === '-' || dateStr === 'N/A') {
+                return new Date(0); // Return epoch for empty dates
+            }
+
+            try {
+                // Example: "28/11/2025 5:53 PM"
+                const parts = dateStr.trim().split(' ');
+
+                // Extract date part: "28/11/2025"
+                const datePart = parts[0];
+                const [day, month, year] = datePart.split('/');
+
+                // Extract time part: "5:53" and AM/PM: "PM"
+                const timePart = parts[1]; // "5:53"
+                const meridiem = parts[2]; // "AM" or "PM"
+
+                const [hours, minutes] = timePart.split(':');
+                let hour24 = parseInt(hours);
+
+                // Convert to 24-hour format
+                if (meridiem === 'PM' && hour24 !== 12) {
+                    hour24 += 12;
+                } else if (meridiem === 'AM' && hour24 === 12) {
+                    hour24 = 0;
+                }
+
+                // Create Date object (month is 0-indexed in JavaScript)
+                const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour24, parseInt(minutes));
+
+                return dateObj;
+            } catch (error) {
+                console.error('Error parsing date:', dateStr, error);
+                return new Date(0);
+            }
+        }
+
+        // Function to get JobType CSS class based on job type
+        function getJobTypeClass(jobType) {
+            if (!jobType || jobType === '-' || jobType === 'N/A') {
+                return 'jobtype-other';
+            }
+
+            const jobTypeLower = jobType.toLowerCase();
+
+            if (jobTypeLower.includes('recovery') || jobTypeLower.includes('deinstall') || jobTypeLower.includes('removal')) {
+                return 'jobtype-recovery';
+            } else if (jobTypeLower.includes('install') && !jobTypeLower.includes('deinstall')) {
+                return 'jobtype-install';
+            } else if (jobTypeLower.includes('swap')) {
+                return 'jobtype-swap';
+            } else {
+                return 'jobtype-other';
+            }
+        }
+
+        // Function to calculate charge based on job details
+        function calculateCharge(job) {
+            const jobType = (job.jobType || '').toLowerCase();
+            const deviceType = (job.deviceType || '').toUpperCase();
+            const area = job.area || '1'; // Default to Area 1 if empty
+            const isWeekend = (job.weekend || '').toLowerCase().includes('yes') || (job.weekend || '').toLowerCase().includes('true');
+            const isAfterHours = (job.afterHour || '').toLowerCase().includes('yes') || (job.afterHour || '').toLowerCase().includes('true');
+            const isMultiple = (job.multipleJobId || '').trim() !== '';
+            const billable = (job.billable || '').toLowerCase();
+            const isIngenico = job.company === 'ingenico';
+            const isVerifone = job.company === 'verifone';
+            const status = (job.fix || '').toLowerCase(); // fix contiene el Status
+
+            // If not billable, return 0
+            if (billable === 'no' || billable === 'false' || billable === 'n') {
+                return 0;
+            }
+
+            // VERIFONE: Calcular para Completed, Failed, Futile y On Site
+            // NO calcular solo para Cancelled
+            if (isVerifone) {
+                if (status.includes('cancel')) {
+                    return 0; // No calcular para Cancelled
+                }
+                // Solo calcular si es Completed, Failed, Futile u On Site
+                if (!status.includes('completed') && !status.includes('complete') &&
+                    !status.includes('failed') && !status.includes('fail') &&
+                    !status.includes('futile') &&
+                    !status.includes('on site') && !status.includes('on-site') && !status.includes('onsite')) {
+                    return 0; // No calcular para otros estados
+                }
+            }
+
+            // Recovery Service - Always $10 (Verifone and Ingenico)
+            if (jobType.includes('recovery')) {
+                return 10.00;
+            }
+
+            // De-Installation Service - Always $10
+            if (jobType.includes('de-install') || jobType.includes('deinstall') || jobType.includes('removal') || jobType.includes('deinstallation')) {
+                return 10.00;
+            }
+
+            // COO - Verifone specific (standard rate)
+            if (isVerifone && jobType.includes('coo')) {
+                return 28.00; // Standard rate
+            }
+
+            // INGENICO SPECIFIC: Installation with INT device type = Integrated Installation
+            if (isIngenico && jobType.includes('install') && deviceType.includes('INT')) {
+                if (isMultiple) {
+                    return 15.00; // Second subsequent terminals at the same site
+                } else {
+                    return 45.00; // First terminal - Integrated Installation
+                }
+            }
+
+            // Integrated Installation Service (for other cases)
+            if (jobType.includes('integrated') || deviceType.includes('INTEGRATED')) {
+                if (isMultiple) {
+                    return 15.00; // Second subsequent terminals
+                } else {
+                    return 45.00; // First terminal
+                }
+            }
+
+            // Swap Out Service - 2-hour SLA
+            if (jobType.includes('2-hour') || jobType.includes('2 hour') || jobType.includes('urgent') || jobType.includes('emergency')) {
+                if (isWeekend) {
+                    return 60.00;
+                } else {
+                    return 45.00;
+                }
+            }
+
+            // Second subsequent terminals at the same site
+            if (isMultiple) {
+                return 10.00;
+            }
+
+            // Installation, Upgrade, Swap Out Service
+            // Check for common keywords in jobType or deviceType
+            const isServiceCall = jobType.includes('install') || jobType.includes('upgrade') ||
+                                  jobType.includes('swap') || jobType.includes('service') ||
+                                  jobType.includes('maintenance') || jobType.includes('repair') ||
+                                  deviceType.includes('INSTALL') || deviceType.includes('SWAP') ||
+                                  deviceType.includes('SERVICE');
+
+            if (isServiceCall) {
+                // After Hours - Weekend
+                if (isAfterHours && isWeekend) {
+                    if (area === '2') return 120.00;
+                    if (area === '3') return 160.00;
+                    return 90.00; // Area 1
+                }
+
+                // After Hours - Monday-Friday
+                if (isAfterHours) {
+                    if (area === '2') return 105.00;
+                    if (area === '3') return 140.00;
+                    return 80.00; // Area 1
+                }
+
+                // Weekend (regular hours)
+                if (isWeekend) {
+                    if (area === '2') return 50.00;
+                    if (area === '3') return 85.00;
+                    return 40.00; // Area 1
+                }
+
+                // Monday-Friday (regular hours)
+                if (area === '2') return 35.00;
+                if (area === '3') return 55.00;
+                return 28.00; // Area 1
+            }
+
+            // If billable but no specific service identified, apply default rate
+            if (billable === 'yes' || billable === 'y' || billable === 'true') {
+                // Default to Monday-Friday rate based on area
+                if (area === '2') return 35.00;
+                if (area === '3') return 55.00;
+                return 28.00; // Area 1
+            }
+
+            // Default charge if no specific match
+            return 0;
+        }
+
+        // Function to calculate area based on postcode and suburb
+        function calculateArea(postcode, suburb) {
+            if (!postcode || postcode.toString().trim() === '') return ''; // Return empty if no postcode
+
+            const pc = postcode.toString().trim();
+            const sub = suburb ? suburb.toString().trim().toLowerCase() : '';
+
+            // Area 2 postcodes
+            const area2Postcodes = ['5110', '5116', '5111', '5117', '5112', '5113', '5169', '5115'];
+
+            // Special cases for Area 2
+            if (pc === '5019' && sub.includes('salisbury heights')) {
+                return '2';
+            }
+            if (pc === '5125' && sub.includes('greenwith')) {
+                return '2';
+            }
+
+            // Check if postcode is in Area 2
+            if (area2Postcodes.includes(pc)) {
+                return '2';
+            }
+
+            // Area 3 postcodes
+            const area3Postcodes = [
+                '5114', '5231',
+                '5118', '5232',
+                '5120', '5233',
+                '5121', '5234',
+                '5131', '5240',
+                '5153', '5241',
+                '5170', '5243',
+                '5171', '5244',
+                '5172', '5250',
+                '5173', '5251',
+                '5201', '5252'
+            ];
+
+            // Check if postcode is in Area 3
+            if (area3Postcodes.includes(pc)) {
+                return '3';
+            }
+
+            // Default to Area 1 if not in Area 2 or Area 3
+            return '1';
+        }
+
+        // Function to sort jobs by column
+        function sortJobs(column) {
+            // If clicking the same column, toggle direction
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                // For date columns, start with desc (most recent first)
+                if (column === 'onSiteDateTime' || column === 'offSiteDateTime') {
+                    currentSortDirection = 'desc';
+                } else {
+                    currentSortDirection = 'asc';
+                }
+            }
+
+            // Update header indicators
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+            });
+            const activeHeader = document.querySelector(`th[data-sort="${column}"]`);
+            if (activeHeader) {
+                activeHeader.classList.add(currentSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+            }
+
+            // Sort allJobs array
+            allJobs.sort((a, b) => {
+                let aVal = a[column];
+                let bVal = b[column];
+
+                // Handle special cases
+                if (column === 'charge' || column === 'amount') {
+                    aVal = parseFloat(aVal) || 0;
+                    bVal = parseFloat(bVal) || 0;
+                } else if (column === 'onSiteDateTime' || column === 'offSiteDateTime') {
+                    // Parse dates with time using new helper function
+                    aVal = parseDateWithTime(aVal);
+                    bVal = parseDateWithTime(bVal);
+                } else if (column === 'area') {
+                    // Sort areas numerically
+                    aVal = parseInt(aVal) || 0;
+                    bVal = parseInt(bVal) || 0;
+                } else {
+                    // String comparison
+                    aVal = (aVal || '').toString().toLowerCase();
+                    bVal = (bVal || '').toString().toLowerCase();
+                }
+
+                if (aVal < bVal) return currentSortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return currentSortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            // Refresh table
+            updateTable();
+        }
+
+        // Event listeners for file inputs
+        document.getElementById('ingenicoFile').addEventListener('change', function(e) {
+            handleFileUpload(e.target.files[0], 'ingenico');
+        });
+
+        document.getElementById('verifoneFile').addEventListener('change', function(e) {
+            handleFileUpload(e.target.files[0], 'verifone');
+        });
+
+        // Event listeners for filters
+        document.getElementById('searchInput').addEventListener('input', filterJobs);
+        document.getElementById('companyFilter').addEventListener('change', filterJobs);
+        document.getElementById('statusFilter').addEventListener('change', filterJobs);
+
+        // Event listeners for tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const company = this.getAttribute('data-company');
+                switchTab(company);
+            });
+        });
+
+        // Event listeners for sortable columns
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.addEventListener('click', function() {
+                const column = this.getAttribute('data-sort');
+                sortJobs(column);
+            });
+        });
+
+        function handleFileUpload(file, company) {
+            if (!file) return;
+
+            const reader = new FileReader();
+            const statusElement = document.getElementById(company + 'Status');
+
+            statusElement.textContent = 'Loading...';
+
+            reader.onload = function(e) {
+                const htmlContent = e.target.result;
+
+                console.log(`Cargando archivo como: ${company}`);
+
+                if (company === 'ingenico') {
+                    parseIngenicoData(htmlContent);
+                    statusElement.textContent = '✓ File loaded successfully';
+                    statusElement.style.color = '#2e7d32';
+                } else if (company === 'verifone') {
+                    parseVerifoneData(htmlContent);
+                    statusElement.textContent = '✓ File loaded successfully';
+                    statusElement.style.color = '#7b1fa2';
+                }
+
+                console.log(`Total de jobs después de cargar: ${allJobs.length}`);
+                updateTable();
+                updateStats();
+            };
+
+            reader.onerror = function() {
+                statusElement.textContent = '✗ Error loading file';
+                statusElement.style.color = '#c62828';
+            };
+
+            reader.readAsText(file);
+        }
+
+        function parseIngenicoData(html) {
+            // Remove previous Ingenico jobs
+            allJobs = allJobs.filter(job => job.company !== 'ingenico');
+
+            // Create temporary DOM parser
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            // Find specific table with id ctl00_ContentPlaceHolder1_grdJob
+            const table = doc.querySelector('table[id*="grdJob"]');
+            if (!table) {
+                console.error('Ingenico: No se encontró tabla con id="grdJob"');
+                showNotification('No se encontró la tabla esperada en el archivo HTML. Verifica que el archivo sea correcto.', 'warning', 'Ingenico: Formato Incorrecto');
+                return;
+            }
+
+            console.log('Ingenico: Tabla encontrada, procesando...');
+
+            // Find all rows, excluding those with FormGridHeaderCell or FormGridPagerCell class
+            const rows = table.querySelectorAll('tr');
+            console.log(`Ingenico: Total de filas encontradas: ${rows.length}`);
+
+            let processedRows = 0;
+            let skippedRows = 0;
+
+            rows.forEach((row) => {
+                // Skip header and pagination rows
+                if (row.className.includes('FormGridHeaderCell') ||
+                    row.className.includes('FormGridPagerCell')) {
+                    skippedRows++;
+                    return;
+                }
+
+                const cells = row.querySelectorAll('td');
+
+                // Ingenico closed job list has 22 columns
+                if (cells.length >= 22) {
+                    processedRows++;
+                    // Extract Job ID from link
+                    const jobIdLink = cells[0].querySelector('a');
+                    const jobId = jobIdLink ? jobIdLink.textContent.trim() : '';
+
+                    if (jobId) {
+                        const suburb = cells[7] ? cells[7].textContent.trim() : '';
+                        const postcode = cells[8] ? cells[8].textContent.trim() : '';
+
+                        // Create job object with initial data
+                        const job = {
+                            company: 'ingenico',
+                            jobId: jobId,
+                            fsp: cells[1] ? cells[1].textContent.trim() : '',
+                            clientId: cells[2] ? cells[2].textContent.trim() : '',
+                            jobType: cells[3] ? cells[3].textContent.trim() : '',
+                            terminalId: cells[4] ? cells[4].textContent.trim() : '',
+                            requiredBy: cells[5] ? cells[5].textContent.trim() : '',
+                            merchantName: cells[6] ? cells[6].textContent.trim() : '',
+                            suburb: suburb,
+                            postcode: postcode,
+                            area: calculateArea(postcode, suburb), // Calculate area based on postcode and suburb
+                            onSiteDateTime: cells[9] ? cells[9].textContent.trim() : '',
+                            offSiteDateTime: cells[10] ? cells[10].textContent.trim() : '',
+                            deviceType: cells[11] ? cells[11].textContent.trim() : '',
+                            projectNo: cells[12] ? cells[12].textContent.trim() : '',
+                            billable: cells[13] ? cells[13].textContent.trim() : '',
+                            fix: cells[14] ? cells[14].textContent.trim() : '',
+                            slaMet: cells[15] ? cells[15].textContent.trim() : '',
+                            multipleJobId: cells[16] ? cells[16].textContent.trim() : '',
+                            extraTime: cells[17] ? cells[17].textContent.trim() : '',
+                            afterHour: cells[18] ? cells[18].textContent.trim() : '',
+                            weekend: cells[19] ? cells[19].textContent.trim() : '',
+                            charge: 0,
+                            amount: 0,
+                            status: cells[14] && cells[14].textContent.trim().toLowerCase().includes('complete') ? 'complete' : 'failed'
+                        };
+
+                        // Calculate charge based on job details
+                        job.charge = calculateCharge(job);
+                        job.amount = job.charge; // amount is the same as charge
+
+                        allJobs.push(job);
+                    }
+                } else if (cells.length > 0) {
+                    console.log(`Ingenico: Fila con ${cells.length} celdas (se esperaban al menos 22)`);
+                }
+            });
+
+            console.log(`Ingenico: Filas procesadas: ${processedRows}, Filas omitidas: ${skippedRows}`);
+            console.log(`Ingenico: ${allJobs.filter(j => j.company === 'ingenico').length} jobs cargados`);
+        }
+
+        function parseVerifoneData(html) {
+            // Remove previous Verifone jobs
+            allJobs = allJobs.filter(job => job.company !== 'verifone');
+
+            // Check if this is the new HTML table format (generated by generate_invoice.py)
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            // Try to find the table in the new format
+            const table = doc.querySelector('table');
+            if (table) {
+                console.log('Verifone: Tabla encontrada');
+                const rows = table.querySelectorAll('tbody tr');
+                console.log(`Verifone: ${rows.length} filas encontradas`);
+
+                if (rows.length > 0) {
+                    // New format: Parse HTML table
+                    rows.forEach((row) => {
+                        const cells = row.querySelectorAll('td');
+
+                        // The table has 22 columns
+                        if (cells.length >= 20) {
+                            const jobId = cells[0] ? cells[0].textContent.trim() : '';
+
+                            if (jobId && jobId.startsWith('WO-')) {
+                                // Extract text content, handling spans for JobType
+                                const jobTypeCell = cells[3];
+                                let jobType = '';
+                                if (jobTypeCell) {
+                                    const span = jobTypeCell.querySelector('span');
+                                    jobType = span ? span.textContent.trim() : jobTypeCell.textContent.trim();
+                                }
+
+                                const suburb = cells[7] ? cells[7].textContent.trim() : '';
+                                const postcode = cells[8] ? cells[8].textContent.trim() : '';
+
+                                // Create job object
+                                // Extract status from the Fix column (cell 14) which contains the status
+                                const fixText = cells[14] ? cells[14].textContent.trim().toLowerCase() : '';
+                                let jobStatus = 'complete'; // default
+                                if (fixText.includes('fail')) {
+                                    jobStatus = 'failed';
+                                } else if (fixText.includes('complete')) {
+                                    jobStatus = 'complete';
+                                } else if (fixText.includes('on site') || fixText.includes('onsite') || fixText.includes('on-site')) {
+                                    jobStatus = 'onsite';
+                                } else if (fixText.includes('cancel')) {
+                                    jobStatus = 'cancelled';
+                                } else if (fixText.includes('schedul')) {
+                                    jobStatus = 'scheduled';
+                                } else if (fixText.includes('futile')) {
+                                    jobStatus = 'futile';
+                                }
+
+                                const job = {
+                                    company: 'verifone',
+                                    jobId: jobId,
+                                    fsp: cells[1] ? cells[1].textContent.trim() : '',
+                                    clientId: cells[2] ? cells[2].textContent.trim() : '',
+                                    jobType: jobType,
+                                    terminalId: cells[4] ? cells[4].textContent.trim() : '',
+                                    requiredBy: cells[5] ? cells[5].textContent.trim() : '',
+                                    merchantName: cells[6] ? cells[6].textContent.trim() : '',
+                                    suburb: suburb,
+                                    postcode: postcode,
+                                    area: calculateArea(postcode, suburb), // Calculate area based on postcode
+                                    onSiteDateTime: cells[10] ? cells[10].textContent.trim() : '',
+                                    offSiteDateTime: '',
+                                    deviceType: cells[11] ? cells[11].textContent.trim() : '',
+                                    projectNo: cells[12] ? cells[12].textContent.trim() : '',
+                                    billable: cells[13] ? cells[13].textContent.trim() : 'yes',
+                                    fix: cells[14] ? cells[14].textContent.trim() : '',
+                                    slaMet: cells[15] ? cells[15].textContent.trim() : '',
+                                    multipleJobId: cells[16] ? cells[16].textContent.trim() : '',
+                                    extraTime: cells[17] ? cells[17].textContent.trim() : '',
+                                    afterHour: cells[18] ? cells[18].textContent.trim() : '',
+                                    weekend: cells[19] ? cells[19].textContent.trim() : '',
+                                    charge: 0,
+                                    amount: 0,
+                                    status: jobStatus
+                                };
+
+                                // Calculate charge based on job details
+                                job.charge = calculateCharge(job);
+                                job.amount = job.charge;
+
+                                allJobs.push(job);
+                            }
+                        }
+                    });
+
+                    console.log(`Verifone: ${allJobs.filter(j => j.company === 'verifone').length} jobs cargados`);
+                    return; // Exit early if we successfully parsed the new format
+                }
+            }
+
+            console.log('Verifone: No se encontraron filas en formato de tabla HTML, intentando formato antiguo...');
+
+            // OLD FORMAT: Fallback to the old Salesforce Lightning parsing
+            const workOrdersMap = new Map();
+
+            // Find all Work Order numbers
+            const woPattern = /WO-\d+/g;
+            const woMatches = html.match(woPattern);
+
+            if (!woMatches || woMatches.length === 0) return;
+
+            const uniqueWOs = [...new Set(woMatches)];
+
+            uniqueWOs.forEach(woId => {
+                // Find the first occurrence of this WO in the HTML
+                const woIndex = html.indexOf(woId);
+                if (woIndex === -1) return;
+
+                // Extract a larger context around the work order (2000 chars before and after)
+                const contextStart = Math.max(0, woIndex - 2000);
+                const contextEnd = Math.min(html.length, woIndex + 2000);
+                const context = html.substring(contextStart, contextEnd);
+
+                // Extract Work Order Type - try multiple patterns
+                let workOrderType = '';
+                let workOrderTypePatterns = [
+                    /Work Order Type<\/span><\/dt><dd[^>]*><span[^>]*>([^<]+)<\/span>/i,
+                    /Work Order Type[:\s]*<[^>]*>([^<]+)</i,
+                    /"WorkOrderType"\s*:\s*"([^"]+)"/i,
+                    /Work Order Type[:\s]*([A-Za-z\s]+)(?=<|Work|$)/i
+                ];
+
+                for (let pattern of workOrderTypePatterns) {
+                    const match = context.match(pattern);
+                    if (match && match[1]) {
+                        workOrderType = match[1].trim();
+                        break;
+                    }
+                }
+
+                // Extract Work Type - try multiple patterns
+                let workType = '';
+                let workTypePatterns = [
+                    /Work Type<\/span><\/dt><dd[^>]*><span[^>]*>([^<]+)<\/span>/i,
+                    /Work Type[:\s]*<[^>]*>([^<]+)</i,
+                    /"WorkType"\s*:\s*"([^"]+)"/i,
+                    /Work Type[:\s]*([A-Za-z\s]+)(?=<|City|$)/i
+                ];
+
+                for (let pattern of workTypePatterns) {
+                    const match = context.match(pattern);
+                    if (match && match[1]) {
+                        workType = match[1].trim();
+                        break;
+                    }
+                }
+
+                // Extract City - try multiple patterns
+                let city = '';
+                let cityPatterns = [
+                    /City<\/span><\/dt><dd[^>]*><span[^>]*>([^<]+)<\/span>/i,
+                    /City[:\s]*<[^>]*>([^<]+)</i,
+                    /"City"\s*:\s*"([^"]+)"/i,
+                    /City[:\s]*([A-Za-z\s]+)(?=<|State|Postcode|$)/i
+                ];
+
+                for (let pattern of cityPatterns) {
+                    const match = context.match(pattern);
+                    if (match && match[1]) {
+                        city = match[1].trim();
+                        break;
+                    }
+                }
+
+                // Store the work order data
+                if (!workOrdersMap.has(woId)) {
+                    workOrdersMap.set(woId, {
+                        woNumber: woId,
+                        workOrderType: workOrderType,
+                        workType: workType,
+                        city: city
+                    });
+                }
+            });
+
+            // Convert map to jobs array
+            workOrdersMap.forEach((woData, woNumber) => {
+                const suburb = woData.city || '';
+                const postcode = '';
+
+                // Create job object with initial data
+                const job = {
+                    company: 'verifone',
+                    jobId: woNumber,
+                    fsp: '', // Not filled for Verifone
+                    clientId: '',
+                    jobType: woData.workOrderType || '', // Work Order Type field
+                    terminalId: '', // Not filled for Verifone
+                    requiredBy: '',
+                    merchantName: '', // Not filled for Verifone
+                    suburb: suburb, // City field
+                    postcode: postcode, // Not available
+                    area: calculateArea(postcode, suburb), // Will be empty if no postcode
+                    onSiteDateTime: '', // Not available
+                    offSiteDateTime: '',
+                    deviceType: woData.workType || '', // Work Type field
+                    projectNo: '',
+                    billable: 'yes', // Assume billable for Verifone
+                    fix: '',
+                    slaMet: '',
+                    multipleJobId: '',
+                    extraTime: '',
+                    afterHour: '',
+                    weekend: '',
+                    charge: 0,
+                    amount: 0,
+                    status: 'complete' // Assuming completed since it's in "Completed"
+                };
+
+                // Calculate charge based on job details
+                job.charge = calculateCharge(job);
+                job.amount = job.charge; // amount is the same as charge
+
+                allJobs.push(job);
+            });
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('jobsTableBody');
+
+            if (allJobs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="17">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📂</div>
+                                <h3>No data loaded</h3>
+                                <p>Please load the Ingenico and/or Verifone HTML files above.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filterJobs();
+        }
+
+        function filterJobs() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const companyFilter = document.getElementById('companyFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            const filteredJobs = allJobs.filter(job => {
+                const matchesSearch =
+                    (job.jobId || '').toLowerCase().includes(searchTerm) ||
+                    (job.fsp || '').toLowerCase().includes(searchTerm) ||
+                    (job.merchantName || '').toLowerCase().includes(searchTerm) ||
+                    (job.terminalId || '').toLowerCase().includes(searchTerm) ||
+                    (job.suburb || '').toLowerCase().includes(searchTerm) ||
+                    (job.postcode || '').toLowerCase().includes(searchTerm) ||
+                    (job.jobType || '').toLowerCase().includes(searchTerm);
+
+                const matchesCompany = companyFilter === 'all' || job.company === companyFilter;
+
+                // Match status - check both job.status and job.fix fields
+                let matchesStatus = statusFilter === 'all';
+                if (!matchesStatus) {
+                    const jobStatus = (job.status || '').toLowerCase();
+                    const jobFix = (job.fix || '').toLowerCase();
+
+                    if (statusFilter === 'complete') {
+                        matchesStatus = jobStatus.includes('complete') || jobFix.includes('complete');
+                    } else if (statusFilter === 'failed') {
+                        matchesStatus = jobStatus.includes('fail') || jobFix.includes('fail');
+                    } else if (statusFilter === 'onsite') {
+                        matchesStatus = jobStatus.includes('on site') || jobFix.includes('on site') ||
+                                       jobStatus.includes('onsite') || jobFix.includes('onsite');
+                    } else if (statusFilter === 'cancelled') {
+                        matchesStatus = jobStatus.includes('cancel') || jobFix.includes('cancel');
+                    } else if (statusFilter === 'scheduled') {
+                        matchesStatus = jobStatus.includes('schedul') || jobFix.includes('schedul');
+                    } else if (statusFilter === 'futile') {
+                        matchesStatus = jobStatus.includes('futile') || jobFix.includes('futile');
+                    }
+                }
+
+                return matchesSearch && matchesCompany && matchesStatus;
+            });
+
+            displayJobs(filteredJobs);
+        }
+
+        function displayJobs(jobs) {
+            const tbody = document.getElementById('jobsTableBody');
+
+            if (jobs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="17">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🔍</div>
+                                <h3>No results found</h3>
+                                <p>Try adjusting your search filters.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = jobs.map((job, index) => {
+                const jobTypeClass = getJobTypeClass(job.jobType);
+                const rowClass = job.status === 'onsite' ? 'status-onsite' : '';
+                return `
+                <tr class="${rowClass}" ondblclick='openJobModal(${JSON.stringify(job).replace(/'/g, "&#39;")})'>
+                    <td><strong>${index + 1}</strong></td>
+                    <td>
+                        <span class="company-badge company-${job.company}">
+                            ${job.company === 'ingenico' ? 'Ingenico' : 'Verifone'}
+                        </span>
+                    </td>
+                    <td><strong>${job.jobId || '-'}</strong></td>
+                    <td>${job.fsp || '-'}</td>
+                    <td>
+                        <span class="jobtype-badge ${jobTypeClass}">
+                            ${job.jobType || '-'}
+                        </span>
+                    </td>
+                    <td>${job.terminalId || '-'}</td>
+                    <td>${job.merchantName || '-'}</td>
+                    <td>${job.suburb || '-'}</td>
+                    <td>${job.postcode || '-'}</td>
+                    <td>${job.area || '-'}</td>
+                    <td>${job.onSiteDateTime || '-'}</td>
+                    <td>${job.deviceType || '-'}</td>
+                    <td>${job.billable || '-'}</td>
+                    <td>${job.afterHour || '-'}</td>
+                    <td>${job.weekend || '-'}</td>
+                    <td>${job.charge ? formatCurrency(job.charge) : '-'}</td>
+                    <td>
+                        <span class="status-badge status-${job.status}">
+                            ${job.status === 'complete' ? 'Completed' :
+                              job.status === 'failed' ? 'Failed' :
+                              job.status === 'onsite' ? 'On Site' :
+                              job.status === 'cancelled' ? 'Cancelled' :
+                              job.status === 'scheduled' ? 'Scheduled' :
+                              job.status === 'futile' ? 'Futile' : job.status}
+                        </span>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        function openJobModal(job) {
+            const modal = document.getElementById('jobModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+
+            // Update title
+            modalTitle.textContent = `Job Details - ${job.jobId}`;
+
+            // Create modal content
+            modalBody.innerHTML = `
+                <div class="modal-section">
+                    <div class="modal-section-title">General Information</div>
+                    <div class="modal-grid">
+                        <div class="modal-field">
+                            <div class="modal-field-label">Company</div>
+                            <div class="modal-field-value">
+                                <span class="company-badge company-${job.company}">
+                                    ${job.company === 'ingenico' ? 'Ingenico' : 'Verifone'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Job ID</div>
+                            <div class="modal-field-value"><strong>${job.jobId || '-'}</strong></div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">FSP</div>
+                            <div class="modal-field-value ${!job.fsp ? 'empty' : ''}">${job.fsp || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Client ID</div>
+                            <div class="modal-field-value ${!job.clientId ? 'empty' : ''}">${job.clientId || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Job Type</div>
+                            <div class="modal-field-value ${!job.jobType ? 'empty' : ''}">
+                                ${job.jobType ? `<span class="jobtype-badge ${getJobTypeClass(job.jobType)}">${job.jobType}</span>` : 'Not available'}
+                            </div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Status</div>
+                            <div class="modal-field-value">
+                                <span class="status-badge status-${job.status}">
+                                    ${job.status === 'complete' ? 'Completed' :
+                                      job.status === 'failed' ? 'Failed' :
+                                      job.status === 'onsite' ? 'On Site' :
+                                      job.status === 'cancelled' ? 'Cancelled' :
+                                      job.status === 'scheduled' ? 'Scheduled' :
+                                      job.status === 'futile' ? 'Futile' : job.status}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">Location and Device</div>
+                    <div class="modal-grid">
+                        <div class="modal-field">
+                            <div class="modal-field-label">Merchant Name</div>
+                            <div class="modal-field-value ${!job.merchantName ? 'empty' : ''}">${job.merchantName || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Suburb</div>
+                            <div class="modal-field-value ${!job.suburb ? 'empty' : ''}">${job.suburb || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Postcode</div>
+                            <div class="modal-field-value ${!job.postcode ? 'empty' : ''}">${job.postcode || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Area</div>
+                            <div class="modal-field-value ${!job.area ? 'empty' : ''}">${job.area || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Terminal ID</div>
+                            <div class="modal-field-value ${!job.terminalId ? 'empty' : ''}">${job.terminalId || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Device Type</div>
+                            <div class="modal-field-value ${!job.deviceType ? 'empty' : ''}">${job.deviceType || 'Not available'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">Dates and Times</div>
+                    <div class="modal-grid">
+                        <div class="modal-field">
+                            <div class="modal-field-label">Required By</div>
+                            <div class="modal-field-value ${!job.requiredBy ? 'empty' : ''}">${job.requiredBy || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">OnSite DateTime</div>
+                            <div class="modal-field-value ${!job.onSiteDateTime ? 'empty' : ''}">${job.onSiteDateTime || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">OffSite DateTime</div>
+                            <div class="modal-field-value ${!job.offSiteDateTime ? 'empty' : ''}">${job.offSiteDateTime || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Extra Time</div>
+                            <div class="modal-field-value ${!job.extraTime ? 'empty' : ''}">${job.extraTime || 'No'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">Project Details</div>
+                    <div class="modal-grid">
+                        <div class="modal-field">
+                            <div class="modal-field-label">Project No</div>
+                            <div class="modal-field-value ${!job.projectNo ? 'empty' : ''}">${job.projectNo || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Multiple Job ID</div>
+                            <div class="modal-field-value ${!job.multipleJobId ? 'empty' : ''}">${job.multipleJobId || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Fix</div>
+                            <div class="modal-field-value ${!job.fix ? 'empty' : ''}">${job.fix || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">SLA Met</div>
+                            <div class="modal-field-value ${!job.slaMet ? 'empty' : ''}">${job.slaMet || 'Not available'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">Billing</div>
+                    <div class="modal-grid">
+                        <div class="modal-field">
+                            <div class="modal-field-label">Billable</div>
+                            <div class="modal-field-value ${!job.billable ? 'empty' : ''}">${job.billable || 'Not available'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">After Hour</div>
+                            <div class="modal-field-value ${!job.afterHour ? 'empty' : ''}">${job.afterHour || 'No'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Weekend</div>
+                            <div class="modal-field-value ${!job.weekend ? 'empty' : ''}">${job.weekend || 'No'}</div>
+                        </div>
+                        <div class="modal-field">
+                            <div class="modal-field-label">Charge (AUD)</div>
+                            <div class="modal-field-value"><strong>${job.charge ? formatCurrency(job.charge) : formatCurrency(0)}</strong></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Show modal
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('jobModal');
+            modal.classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('jobModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Close modal with ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-AU', {
+                style: 'currency',
+                currency: 'AUD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount);
+        }
+
+        function calculateTotals() {
+            const ingenicoJobs = allJobs.filter(j => j.company === 'ingenico');
+            const verifoneJobs = allJobs.filter(j => j.company === 'verifone');
+
+            // Calculate totals by summing amounts from each job
+            const ingenicoTotal = ingenicoJobs.reduce((sum, job) => sum + (job.amount || 0), 0);
+            const verifoneTotal = verifoneJobs.reduce((sum, job) => sum + (job.amount || 0), 0);
+            const globalTotal = ingenicoTotal + verifoneTotal;
+
+            return {
+                ingenico: ingenicoTotal,
+                verifone: verifoneTotal,
+                global: globalTotal
+            };
+        }
+
+        function updateStats() {
+            const ingenicoJobs = allJobs.filter(j => j.company === 'ingenico');
+            const verifoneJobs = allJobs.filter(j => j.company === 'verifone');
+
+            document.getElementById('totalJobs').textContent = allJobs.length;
+            document.getElementById('ingenicoCount').textContent = ingenicoJobs.length;
+            document.getElementById('verifoneCount').textContent = verifoneJobs.length;
+
+            // Update tab counters
+            document.getElementById('ingenicoTabCount').textContent = ingenicoJobs.length;
+            document.getElementById('verifoneTabCount').textContent = verifoneJobs.length;
+
+            // Calculate and update totals in AUD
+            const totals = calculateTotals();
+            document.getElementById('ingenicoTotal').textContent = formatCurrency(totals.ingenico);
+            document.getElementById('verifoneTotal').textContent = formatCurrency(totals.verifone);
+            document.getElementById('globalTotal').textContent = formatCurrency(totals.global);
+        }
+
+        function switchTab(company) {
+            // Update currentTab
+            currentTab = company;
+
+            // Update active tab classes
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.tab[data-company="${company}"]`).classList.add('active');
+
+            // Update company filter
+            document.getElementById('companyFilter').value = company;
+
+            // Apply filters
+            filterJobs();
+        }
+
+        // Server status check is handled by base.html (no need to duplicate)
+
+        function generateNewInvoice() {
+            if (!confirm('Generate a new invoice? This will fetch all current work orders from Verifone.\n\nYou can monitor the progress in the status indicator at the top right.')) {
+                return;
+            }
+
+            fetch('/api/generate-invoice', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Invoice generation started successfully! Monitor progress in the status indicator above.', 'success', 'Generation Started');
+                } else {
+                    showNotification(data.error || 'Failed to start generation', 'error', 'Generation Failed');
+                }
+            })
+            .catch(error => {
+                showNotification('Error connecting to server. Make sure the Flask server is running.\n\nError: ' + error.message, 'error', 'Connection Error');
+            });
+        }
+
+        function exportToExcel() {
+            if (allJobs.length === 0) {
+                showNotification('No data to export. Please load Ingenico and/or Verifone files first.', 'warning', 'No Data');
+                return;
+            }
+
+            // Separate jobs by company
+            const ingenicoJobs = allJobs.filter(j => j.company === 'ingenico');
+            const verifoneJobs = allJobs.filter(j => j.company === 'verifone');
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+
+            // Helper function to format Verifone job data for export with specified column order
+            function formatVerifoneJobsForExport(jobs) {
+                return jobs.map(job => ({
+                    'FSP': job.fsp || '',
+                    'ClientID': job.clientId || '',
+                    'JobType': job.jobType || '',
+                    'TerminalID': job.terminalId || '',
+                    'RequiredBy': job.requiredBy || '',
+                    'MerchantName': job.merchantName || '',
+                    'Suburb': job.suburb || '',
+                    'Postcode': job.postcode || '',
+                    'Area': job.area || '',
+                    'OnSiteDateTime': job.onSiteDateTime || '',
+                    'DeviceType': job.deviceType || '',
+                    'ProjectNo': job.projectNo || '',
+                    'Billable': job.billable || '',
+                    'Fix': job.fix || '',
+                    'SLAMet': job.slaMet || '',
+                    'MultipleJobID': job.multipleJobId || '',
+                    'ExtraTime': job.extraTime || '',
+                    'AfterHour': job.afterHour || '',
+                    'Weekend': job.weekend || '',
+                    'Comments': '', // Empty column for comments
+                    'JobID': job.jobId || '',
+                    'Charge': job.charge || 0
+                }));
+            }
+
+            // Helper function to format Ingenico job data for export
+            function formatIngenicoJobsForExport(jobs) {
+                return jobs.map(job => ({
+                    'JobID': job.jobId || '',
+                    'FSP': job.fsp || '',
+                    'ClientID': job.clientId || '',
+                    'JobType': job.jobType || '',
+                    'TerminalID': job.terminalId || '',
+                    'RequiredBy': job.requiredBy || '',
+                    'MerchantName': job.merchantName || '',
+                    'Suburb': job.suburb || '',
+                    'Postcode': job.postcode || '',
+                    'Area': job.area || '',
+                    'OnSiteDateTime': job.onSiteDateTime || '',
+                    'DeviceType': job.deviceType || '',
+                    'ProjectNo': job.projectNo || '',
+                    'Billable': job.billable || '',
+                    'Fix': job.fix || '',
+                    'SLAMet': job.slaMet || '',
+                    'MultipleJobID': job.multipleJobId || '',
+                    'ExtraTime': job.extraTime || '',
+                    'AfterHour': job.afterHour || '',
+                    'Weekend': job.weekend || '',
+                    'Extratime (Block)': '', // Empty column as requested
+                    'Charge': job.charge || 0
+                }));
+            }
+
+            // Create Verifone sheet
+            if (verifoneJobs.length > 0) {
+                const verifoneData = formatVerifoneJobsForExport(verifoneJobs);
+                const verifoneWS = XLSX.utils.json_to_sheet(verifoneData);
+
+                // Set column widths for Verifone
+                const colWidths = [
+                    {wch: 10}, // FSP
+                    {wch: 10}, // ClientID
+                    {wch: 15}, // JobType
+                    {wch: 12}, // TerminalID
+                    {wch: 15}, // RequiredBy
+                    {wch: 25}, // MerchantName
+                    {wch: 15}, // Suburb
+                    {wch: 10}, // Postcode
+                    {wch: 8},  // Area
+                    {wch: 18}, // OnSiteDateTime
+                    {wch: 15}, // DeviceType
+                    {wch: 12}, // ProjectNo
+                    {wch: 10}, // Billable
+                    {wch: 15}, // Fix
+                    {wch: 10}, // SLAMet
+                    {wch: 15}, // MultipleJobID
+                    {wch: 12}, // ExtraTime
+                    {wch: 12}, // AfterHour
+                    {wch: 10}, // Weekend
+                    {wch: 20}, // Comments
+                    {wch: 12}, // JobID
+                    {wch: 10}  // Charge
+                ];
+                verifoneWS['!cols'] = colWidths;
+
+                XLSX.utils.book_append_sheet(wb, verifoneWS, 'Verifone');
+            }
+
+            // Create Ingenico sheet
+            if (ingenicoJobs.length > 0) {
+                const ingenicoData = formatIngenicoJobsForExport(ingenicoJobs);
+                const ingenicoWS = XLSX.utils.json_to_sheet(ingenicoData);
+
+                // Set column widths
+                const colWidths = [
+                    {wch: 12}, // JobID
+                    {wch: 10}, // FSP
+                    {wch: 10}, // ClientID
+                    {wch: 15}, // JobType
+                    {wch: 12}, // TerminalID
+                    {wch: 15}, // RequiredBy
+                    {wch: 25}, // MerchantName
+                    {wch: 15}, // Suburb
+                    {wch: 10}, // Postcode
+                    {wch: 8},  // Area
+                    {wch: 18}, // OnSiteDateTime
+                    {wch: 15}, // DeviceType
+                    {wch: 12}, // ProjectNo
+                    {wch: 10}, // Billable
+                    {wch: 15}, // Fix
+                    {wch: 10}, // SLAMet
+                    {wch: 15}, // MultipleJobID
+                    {wch: 12}, // ExtraTime
+                    {wch: 12}, // AfterHour
+                    {wch: 10}, // Weekend
+                    {wch: 15}, // Extratime (Block)
+                    {wch: 10}  // Charge
+                ];
+                ingenicoWS['!cols'] = colWidths;
+
+                XLSX.utils.book_append_sheet(wb, ingenicoWS, 'Ingenico');
+            }
+
+            // Generate filename with current date
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const filename = `Jobs_Export_${dateStr}.xlsx`;
+
+            // Write file
+            XLSX.writeFile(wb, filename);
+        }
+
+        // ==========================================
+        // Generate Invoice Modal Functions
+        // ==========================================
+
+        function openGenerateModal() {
+            const modal = document.getElementById('generateInvoiceModal');
+            modal.style.display = 'block';
+
+            // Set default dates (from first day of current month to today)
+            const today = new Date();
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+            console.log('🗓️ Setting default dates:');
+            console.log('Today:', today);
+            console.log('First day of month:', firstDayOfMonth);
+
+            document.getElementById('invoiceDateTo').valueAsDate = today;
+            document.getElementById('invoiceDateFrom').valueAsDate = firstDayOfMonth;
+
+            console.log('✅ Dates set in form');
+            console.log('DateFrom value:', document.getElementById('invoiceDateFrom').value);
+            console.log('DateTo value:', document.getElementById('invoiceDateTo').value);
+        }
+
+        function closeGenerateModal() {
+            const modal = document.getElementById('generateInvoiceModal');
+            modal.style.display = 'none';
+        }
+
+        function submitInvoiceGeneration() {
+            // Get form values
+            const dateFrom = document.getElementById('invoiceDateFrom').value;
+            const dateTo = document.getElementById('invoiceDateTo').value;
+            const searchString = document.getElementById('invoiceSearchString').value;
+            const recordLimit = parseInt(document.getElementById('invoiceRecordLimit').value);
+
+            // Validate dates
+            if (!dateFrom || !dateTo) {
+                showNotification('Please select both start and end dates', 'warning', 'Missing Dates');
+                return;
+            }
+
+            // Validate date range
+            if (new Date(dateFrom) > new Date(dateTo)) {
+                showNotification('Start date cannot be after end date', 'warning', 'Invalid Date Range');
+                return;
+            }
+
+            // Validate record limit
+            if (recordLimit < 50 || recordLimit > 300) {
+                showNotification('Record limit must be between 50 and 300', 'warning', 'Invalid Record Limit');
+                return;
+            }
+
+            // Close modal
+            closeGenerateModal();
+
+            // Show loading message
+            showNotification('Generating invoice... This may take a few minutes. Monitor the progress in the status indicator at the top right.', 'info', 'Generation Started', false);
+
+            // Send request with filters
+            fetch('/api/generate-invoice', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    date_from: dateFrom,
+                    date_to: dateTo,
+                    search_string: searchString,
+                    record_limit: recordLimit
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Invoice generation started successfully! Monitor progress in the status indicator above.', 'success', 'Generation Started');
+                } else {
+                    showNotification(data.error || 'Failed to start generation', 'error', 'Generation Failed');
+                }
+            })
+            .catch(error => {
+                showNotification('Error connecting to server: ' + error.message, 'error', 'Connection Error');
+            });
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('generateInvoiceModal');
+            if (event.target == modal) {
+                closeGenerateModal();
+            }
+        });
+    </script>
+
+    <!-- Generate Invoice Modal -->
+    <div id="generateInvoiceModal" class="invoice-modal">
+        <div class="invoice-modal-content">
+            <div class="invoice-modal-header">
+                <span class="invoice-modal-close" onclick="closeGenerateModal()">&times;</span>
+                <h2>Generate Invoice - Filters</h2>
+            </div>
+            <div class="invoice-modal-body">
+                <form id="invoiceFilterForm" onsubmit="event.preventDefault(); submitInvoiceGeneration();">
+                    <div class="invoice-form-group">
+                        <label>Date Range</label>
+                        <div class="invoice-date-range-group">
+                            <div>
+                                <input type="date" id="invoiceDateFrom" required>
+                                <div class="invoice-helper-text">Start date</div>
+                            </div>
+                            <div>
+                                <input type="date" id="invoiceDateTo" required>
+                                <div class="invoice-helper-text">End date</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="invoice-form-group">
+                        <label for="invoiceSearchString">Search Text (Optional)</label>
+                        <input type="text" id="invoiceSearchString" placeholder="Client name, merchant, or keyword...">
+                        <div class="invoice-helper-text">Filter by client name, merchant, or any keyword</div>
+                    </div>
+
+                    <div class="invoice-form-group">
+                        <label for="invoiceRecordLimit">Number of Records</label>
+                        <input type="number" id="invoiceRecordLimit" min="50" max="300" value="200" required>
+                        <div class="invoice-helper-text">Default: 200 | Maximum: 300</div>
+                    </div>
+                </form>
+            </div>
+            <div class="invoice-modal-footer">
+                <button type="button" class="invoice-btn-cancel" onclick="closeGenerateModal()">Cancel</button>
+                <button type="button" class="invoice-btn-generate" onclick="submitInvoiceGeneration()">Generate Invoice</button>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}
