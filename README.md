@@ -41,7 +41,7 @@ pip
 ### 2. Installation
 ```bash
 # Clone repository
-cd "Invoice OCT 2025"
+cd "reports_ingenico_verifone"
 
 # Install dependencies
 pip3 install -r requirements.txt
